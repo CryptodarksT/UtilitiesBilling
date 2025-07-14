@@ -34,10 +34,20 @@ export default function PaymentModal({
     },
     onSuccess: (data) => {
       setTransactionId(data.transactionId);
-      toast({
-        title: "Đang xử lý thanh toán",
-        description: "Vui lòng đợi trong giây lát...",
-      });
+      
+      // Handle MoMo payments - redirect to payment URL
+      if (data.paymentUrl && (paymentMethod === "momo" || paymentMethod === "visa")) {
+        window.open(data.paymentUrl, '_blank');
+        toast({
+          title: "Chuyển hướng thanh toán",
+          description: "Vui lòng hoàn tất thanh toán trên trang MoMo...",
+        });
+      } else {
+        toast({
+          title: "Đang xử lý thanh toán",
+          description: "Vui lòng đợi trong giây lát...",
+        });
+      }
     },
     onError: (error) => {
       toast({

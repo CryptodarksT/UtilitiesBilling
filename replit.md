@@ -5,6 +5,7 @@ This is a full-stack web application built with React on the frontend and Expres
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Payment integration: Real MoMo Business API for credit card and e-wallet payments (not demo/simulation).
 
 ## System Architecture
 
@@ -39,8 +40,11 @@ The application uses three main tables:
 
 ### API Endpoints
 - `POST /api/bills/lookup` - Search for bills by customer ID and bill type
-- `POST /api/payments` - Create a new payment record
-- Payment history and status tracking endpoints
+- `POST /api/payments` - Create a new payment record with MoMo integration
+- `POST /api/payments/momo/ipn` - MoMo IPN (Instant Payment Notification) endpoint
+- `GET /api/payments/:transactionId` - Get payment status
+- `GET /api/payments/history/:customerId` - Get payment history
+- `GET /api/providers/:billType` - Get providers by bill type
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills
@@ -68,9 +72,11 @@ The application uses three main tables:
 - **Date Handling**: date-fns library
 
 ### Backend Dependencies
-- **Database**: Neon PostgreSQL with Drizzle ORM
+- **Database**: In-memory storage with PostgreSQL schema compatibility
 - **Validation**: Zod schemas shared between frontend and backend
-- **Session Storage**: PostgreSQL-based session management
+- **Payment Processing**: MoMo Business API integration
+- **Cryptography**: crypto-js for MoMo signature generation
+- **HTTP Client**: Axios for external API calls
 
 ## Deployment Strategy
 

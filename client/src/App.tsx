@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import PaymentHistory from "@/pages/payment-history";
+import PaymentSuccess from "@/pages/payment-success";
 import NotFound from "@/pages/not-found";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
@@ -17,6 +18,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/history" component={PaymentHistory} />
+          <Route path="/payment-success" component={PaymentSuccess} />
           <Route component={NotFound} />
         </Switch>
       </main>

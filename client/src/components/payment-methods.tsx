@@ -17,22 +17,22 @@ export default function PaymentMethods({
 }: PaymentMethodsProps) {
   const paymentMethods = [
     {
-      id: "qr",
-      name: "QR Code",
+      id: "momo",
+      name: "Ví MoMo",
+      icon: Smartphone,
+      description: "Thanh toán nhanh với ví MoMo",
+    },
+    {
+      id: "visa",
+      name: "Thẻ tín dụng Visa",
       icon: QrCode,
-      description: "Quét mã QR để thanh toán",
+      description: "Thanh toán bằng thẻ Visa qua MoMo",
     },
     {
       id: "bank",
       name: "Chuyển khoản",
       icon: Building2,
       description: "Thanh toán qua ngân hàng",
-    },
-    {
-      id: "ewallet",
-      name: "Ví điện tử",
-      icon: Smartphone,
-      description: "MoMo, ZaloPay, VNPay",
     },
   ];
 

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { billLookupSchema, paymentRequestSchema } from "@shared/schema";
 import { z } from "zod";
+import { MoMoService } from "./momo-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -60,13 +61,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
 
-      // Simulate payment processing
-      setTimeout(async () => {
-        await storage.updatePaymentStatus(payment.id, "completed");
-        await storage.updateBillStatus(billId, "paid");
-      }, 2000);
+      // Handle MoMo payment (both wallet and credit card)
+      if (paymentMethod === "momo" || paymentMethod === "visa") {
+        try {
+          const momoService = new MoMoService();
+          const momoResponse = await momoService.createPayment({
+            amount: parseInt(bill.amount.replace(/[^\d]/g, '')),
+            orderInfo: `Thanh toán hóa đơn ${bill.billType} - ${bill.provider}`,
+            orderId: transactionId,
+            redirectUrl: `${req.protocol}://${req.get('host')}/payment-success`,
+            ipnUrl: `${req.protocol}://${req.get('host')}/api/payments/momo/ipn`,
+            extraData: JSON.stringify({ billId, customerId: bill.customerId })
+          });
 
-      res.json({ payment, transactionId });
+          res.json({ 
+            payment, 
+            transactionId,
+            paymentUrl: momoResponse.payUrl,
+            qrCodeUrl: momoResponse.qrCodeUrl,
+            deeplink: momoResponse.deeplink
+          });
+        } catch (error) {
+          console.error('MoMo payment error:', error);
+          res.status(500).json({ message: "Lỗi khi tạo thanh toán MoMo" });
+        }
+      } else {
+        // For other payment methods, use simulation
+        setTimeout(async () => {
+          await storage.updatePaymentStatus(payment.id, "completed");
+          await storage.updateBillStatus(billId, "paid");
+        }, 2000);
+
+        res.json({ payment, transactionId });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
@@ -111,6 +138,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ history });
     } catch (error) {
       res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+  });
+
+  // MoMo IPN endpoint
+  app.post("/api/payments/momo/ipn", async (req, res) => {
+    try {
+      const momoService = new MoMoService();
+      
+      if (!momoService.verifyIPN(req.body)) {
+        return res.status(400).json({ message: "Invalid signature" });
+      }
+
+      const { orderId, resultCode, extraData } = req.body;
+      
+      if (resultCode === 0) {
+        // Payment successful
+        const payment = await storage.getPaymentByTransactionId(orderId);
+        if (payment) {
+          await storage.updatePaymentStatus(payment.id, "completed");
+          await storage.updateBillStatus(payment.billId, "paid");
+        }
+      } else {
+        // Payment failed
+        const payment = await storage.getPaymentByTransactionId(orderId);
+        if (payment) {
+          await storage.updatePaymentStatus(payment.id, "failed");
+        }
+      }
+
+      res.json({ message: "Success" });
+    } catch (error) {
+      console.error('MoMo IPN error:', error);
+      res.status(500).json({ message: "Error processing IPN" });
     }
   });
 
