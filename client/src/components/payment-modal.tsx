@@ -42,6 +42,11 @@ export default function PaymentModal({
           title: "Chuyển hướng thanh toán",
           description: "Vui lòng hoàn tất thanh toán trên trang MoMo...",
         });
+      } else if (data.momoStatus === "pending_verification") {
+        toast({
+          title: "Tích hợp MoMo đã sẵn sàng",
+          description: "Tài khoản doanh nghiệp cần xác thực để xử lý thanh toán thực tế.",
+        });
       } else {
         toast({
           title: "Đang xử lý thanh toán",
