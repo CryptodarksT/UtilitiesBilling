@@ -61,28 +61,37 @@ export class BIDVService {
   }
 
   async lookupBill(request: BIDVBillLookupRequest): Promise<BIDVBillResponse> {
+    if (!this.apiKey || !this.apiSecret || !this.apiUrl) {
+      throw new Error('BIDV API credentials not configured. Please contact administrator to configure API access.');
+    }
+
     try {
       const timestamp = Date.now().toString();
       const requestData = JSON.stringify(request);
       const signature = this.createSignature(requestData, timestamp);
 
-      // Single simplified HTTPS agent
-      const httpsAgent = new https.Agent({ 
-        rejectUnauthorized: false
+      // Configure HTTPS agent with proper SSL settings
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: true,
+        secureProtocol: 'TLSv1_2_method',
+        ciphers: 'HIGH:!aNULL:!MD5',
+        timeout: 30000
       });
 
       const response = await axios.post<BIDVApiResponse>(
-        `${this.apiUrl}/api/bills/lookup`,
+        `${this.apiUrl}/bills/lookup`,
         request,
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-API-Key': this.apiKey,
-            'X-Timestamp': timestamp,
+            'Authorization': `Bearer ${this.apiKey}`,
             'X-Signature': signature,
+            'X-Timestamp': timestamp,
+            'User-Agent': 'Payoo-System/2.0'
           },
-          timeout: 10000,
-          httpsAgent
+          timeout: 30000,
+          httpsAgent,
+          maxRedirects: 5
         }
       );
 
@@ -99,74 +108,82 @@ export class BIDVService {
     } catch (error: any) {
       console.error('BIDV API Error:', error.message);
       
-      // For demo purposes, return realistic data when API fails
-      console.warn('BIDV API unavailable, generating realistic data for:', request.billNumber);
-      return this.generateRealisticBillData(request);
+      // Provide clear error message instead of fallback data
+      if (error.code === 'EPROTO' || error.code === 'ECONNRESET') {
+        throw new Error('Không thể kết nối với hệ thống BIDV. Vui lòng thử lại sau hoặc liên hệ bộ phận hỗ trợ.');
+      } else if (error.code === 'ENOTFOUND') {
+        throw new Error('Không tìm thấy server BIDV. Vui lòng kiểm tra cấu hình API.');
+      } else if (error.code === 'ETIMEDOUT') {
+        throw new Error('Kết nối với BIDV quá thời gian chờ. Vui lòng thử lại.');
+      } else if (error.response?.status === 401) {
+        throw new Error('Xác thực BIDV API thất bại. Vui lòng kiểm tra API credentials.');
+      } else if (error.response?.status === 404) {
+        throw new Error('Không tìm thấy hóa đơn với mã số này trong hệ thống BIDV.');
+      } else {
+        throw new Error(`Lỗi kết nối BIDV API: ${error.message}`);
+      }
     }
   }
 
-  private generateRealisticBillData(request: BIDVBillLookupRequest): BIDVBillResponse {
-    const billNumber = request.billNumber;
-    const billType = this.getBillTypeFromNumber(billNumber);
-    const provider = this.getProviderFromNumber(billNumber);
-    
-    // Generate realistic data based on bill type
-    const amounts = {
-      electricity: [150000, 200000, 350000, 450000, 600000],
-      water: [80000, 120000, 180000, 250000, 300000],
-      internet: [199000, 299000, 399000, 499000, 599000],
-      television: [150000, 200000, 250000, 300000, 400000],
-      phonecard: [10000, 20000, 50000, 100000, 200000, 500000]
-    };
+  // Method to check API connectivity 
+  async testConnection(): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!this.apiKey || !this.apiSecret || !this.apiUrl) {
+        return {
+          success: false,
+          message: 'API credentials not configured'
+        };
+      }
 
-    const customerNames = [
-      'Nguyễn Văn An', 'Trần Thị Bình', 'Lê Văn Cường', 'Phạm Thị Dung',
-      'Hoàng Văn Em', 'Vũ Thị Phương', 'Đỗ Văn Giang', 'Ngô Thị Hải'
-    ];
+      const httpsAgent = new https.Agent({
+        rejectUnauthorized: true,
+        secureProtocol: 'TLSv1_2_method',
+        timeout: 10000
+      });
 
-    const addresses = [
-      '123 Nguyễn Huệ, Quận 1, TP.HCM',
-      '456 Trần Hưng Đạo, Quận 5, TP.HCM', 
-      '789 Lê Lợi, Quận 3, TP.HCM',
-      '321 Pasteur, Quận 1, TP.HCM',
-      '654 Võ Văn Tần, Quận 3, TP.HCM'
-    ];
+      const response = await axios.get(`${this.apiUrl}/health`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'Payoo-System/2.0'
+        },
+        timeout: 10000,
+        httpsAgent
+      });
 
-    const hash = this.hashBillNumber(billNumber);
-    const amount = amounts[billType as keyof typeof amounts][hash % amounts[billType as keyof typeof amounts].length];
-    const customerName = customerNames[hash % customerNames.length];
-    const address = addresses[hash % addresses.length];
-
-    return {
-      billNumber,
-      customerName,
-      customerAddress: address,
-      customerPhone: `09${Math.floor(Math.random() * 100000000).toString().padStart(8, '0')}`,
-      customerEmail: `${customerName.toLowerCase().replace(/\s+/g, '')}@gmail.com`,
-      billType,
-      provider,
-      amount: amount.toString(),
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'pending',
-      period: new Date().toISOString().slice(0, 7),
-      oldReading: billType === 'electricity' || billType === 'water' ? (1000 + hash % 500).toString() : undefined,
-      newReading: billType === 'electricity' || billType === 'water' ? (1000 + hash % 500 + 100 + hash % 200).toString() : undefined,
-      unit: billType === 'electricity' ? 'kWh' : billType === 'water' ? 'm³' : undefined,
-      unitPrice: billType === 'electricity' ? '2500' : billType === 'water' ? '15000' : undefined,
-      taxes: (amount * 0.1).toString(),
-      fees: (amount * 0.02).toString(),
-      description: `Hóa đơn ${billType} tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}`
-    };
+      return {
+        success: true,
+        message: 'BIDV API connection successful'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `BIDV API connection failed: ${error.message}`
+      };
+    }
   }
 
-  private hashBillNumber(billNumber: string): number {
-    let hash = 0;
-    for (let i = 0; i < billNumber.length; i++) {
-      const char = billNumber.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+  // Get real provider list from BIDV API
+  async getProviders(): Promise<{ [key: string]: string[] }> {
+    try {
+      const response = await axios.get(`${this.apiUrl}/providers`, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'User-Agent': 'Payoo-System/2.0'
+        },
+        timeout: 10000
+      });
+
+      return response.data.providers;
+    } catch (error) {
+      // Return basic provider list if API fails
+      return {
+        electricity: ['EVN TP.HCM', 'EVN Hà Nội', 'EVN Đà Nẵng'],
+        water: ['SAWACO', 'HAWACO', 'DAWACO'],
+        internet: ['VNPT', 'Viettel', 'FPT'],
+        television: ['VTVCab', 'SCTV', 'K+'],
+        phonecard: ['Viettel', 'Vinaphone', 'Mobifone']
+      };
     }
-    return Math.abs(hash);
   }
 
   // Validate bill number format
