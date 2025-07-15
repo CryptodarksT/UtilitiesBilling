@@ -9,6 +9,8 @@ Payment integration: Real MoMo Business API for credit card and e-wallet payment
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
 Excel functionality: Added Excel file upload capability for bulk bill processing.
 Data integrity: 100% real data integration, no mock/simulation data.
+Authentication: Firebase authentication with Google sign-in for business accounts (implemented and working).
+Card management: Encrypted card storage with Firebase/Google Cloud integration for business customers.
 
 ## System Architecture
 
@@ -55,6 +57,14 @@ The application uses three main tables:
 - `GET /api/payments/auto/template` - Download template for auto-payment Excel
 - `POST /api/payments/auto/report` - Generate report for auto-payment results
 - `POST /api/phonecard/purchase` - Purchase phone top-up cards
+- `POST /api/auth/register` - Register new business user with Firebase authentication
+- `GET /api/auth/profile` - Get authenticated user profile
+- `POST /api/cards/link` - Link payment card to customer account
+- `GET /api/cards` - Get user's linked payment cards
+- `PATCH /api/cards/:cardId/default` - Set default payment card
+- `DELETE /api/cards/:cardId` - Remove linked payment card
+- `POST /api/tokens/generate` - Generate customer token for auto-payment
+- `POST /api/payments/auto-card` - Process payment with linked card
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills
