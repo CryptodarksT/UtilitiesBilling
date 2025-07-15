@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { handleRedirectResult } from '@/lib/firebase-redirect';
 import { apiRequest } from '@/lib/queryClient';
 
 interface AuthContextType {
@@ -33,6 +34,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for redirect result first
+    const checkRedirect = async () => {
+      try {
+        const result = await handleRedirectResult();
+        if (result) {
+          console.log('Redirect authentication successful');
+        }
+      } catch (error) {
+        console.error('Redirect result error:', error);
+      }
+    };
+
+    checkRedirect();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       

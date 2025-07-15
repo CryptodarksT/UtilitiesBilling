@@ -18,6 +18,11 @@ https://a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev
 ✓ Project ID: ai-futures-2025
 ✓ Redirect URIs và JavaScript origins đã có domain Replit
 
+## Tình trạng hiện tại:
+- OAuth Client ID đã được cấu hình cho domain Replit
+- Project ID: ai-futures-2025 (NHƯNG environment variable có thể là telegrampro-301eb)
+- Domain quá dài: a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev
+
 ## Các bước khắc phục:
 
 ### Bước 1: Thêm domain vào Firebase Console
@@ -25,9 +30,11 @@ https://a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev
 2. Chọn project của bạn
 3. Vào **Authentication** → **Settings** → **Authorized domains**
 4. Click **Add domain**
-5. Thêm domain: `a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev`
-6. Thêm thêm: `*.replit.dev` (để cho phép tất cả subdomain Replit)
-7. Click **Save**
+5. **LƯU Ý**: Domain Replit quá dài, hãy thêm:
+   - `*.replit.dev` (cho phép tất cả subdomain Replit)
+   - `*.picard.replit.dev` (cho phép subdomain picard)
+   - `localhost` (cho development)
+6. Click **Save**
 
 ### Bước 2: Kiểm tra Google Cloud Console
 1. Truy cập [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
@@ -73,8 +80,20 @@ https://a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev
 
 ## Domain dự phòng để thêm:
 ```
-https://*.replit.dev/*
-https://*.repl.co/*
-http://localhost:5000/*
-http://localhost:5173/*
+*.replit.dev
+*.repl.co
+localhost
+127.0.0.1
 ```
+
+## Nếu vẫn không được, thử cách khác:
+
+### Cách 2: Tạo Custom Domain
+1. Trong Replit, vào **Deployments** → **Custom domains**
+2. Tạo domain ngắn hơn (VD: `payoo-app.replit.app`)
+3. Thêm domain mới này vào Firebase Console
+
+### Cách 3: Sử dụng Localhost để test
+1. Chạy app trên localhost: `npm run dev`
+2. Thêm `localhost` vào Firebase authorized domains
+3. Test trên `http://localhost:5000`

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { signInWithGoogle } from '@/lib/firebase';
+import { signInWithGoogleRedirect } from '@/lib/firebase-redirect';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogIn, Building2 } from 'lucide-react';
 
@@ -20,6 +21,7 @@ export default function Login({ onRegister }: LoginProps) {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
+      // First try popup method
       const result = await signInWithGoogle();
       
       // Check if user exists in our database
@@ -68,6 +70,22 @@ export default function Login({ onRegister }: LoginProps) {
     }
   };
 
+  const handleGoogleSignInRedirect = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogleRedirect();
+      // The redirect will handle the rest
+    } catch (error: any) {
+      console.error('Google redirect error:', error);
+      toast({
+        title: "Lỗi đăng nhập",
+        description: "Không thể chuyển hướng đến Google",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md">
@@ -92,7 +110,21 @@ export default function Login({ onRegister }: LoginProps) {
             ) : (
               <LogIn className="mr-2 h-4 w-4" />
             )}
-            Đăng nhập với Google
+            Đăng nhập với Google (Popup)
+          </Button>
+          
+          <Button
+            onClick={handleGoogleSignInRedirect}
+            disabled={isLoading}
+            className="w-full"
+            variant="default"
+          >
+            {isLoading ? (
+              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+            ) : (
+              <LogIn className="mr-2 h-4 w-4" />
+            )}
+            Đăng nhập với Google (Redirect)
           </Button>
           
           <div className="relative">
