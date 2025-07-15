@@ -156,56 +156,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Fallback to BIDV API
-      const bidvResponse = await bidvService.lookupBill({
-        billNumber,
-        billType,
-        provider
-      });
-
-      // Create or find customer in local storage
-      let customer = await storage.getCustomer(billNumber);
-      if (!customer) {
-        customer = await storage.createCustomer({
-          customerId: billNumber,
-          name: bidvResponse.customerName,
-          address: bidvResponse.customerAddress,
-          phone: bidvResponse.customerPhone,
-          email: bidvResponse.customerEmail
-        });
-      }
-
-      // Create or find bill in local storage
-      let bill = await storage.getBillByCustomerId(billNumber, billType, provider);
-      if (!bill) {
-        bill = await storage.createBill({
-          customerId: billNumber,
-          billType,
-          provider,
-          period: bidvResponse.period || new Date().toISOString().slice(0, 7),
-          oldIndex: bidvResponse.oldReading ? parseInt(bidvResponse.oldReading) : null,
-          newIndex: bidvResponse.newReading ? parseInt(bidvResponse.newReading) : null,
-          consumption: bidvResponse.oldReading && bidvResponse.newReading ? 
-            parseInt(bidvResponse.newReading) - parseInt(bidvResponse.oldReading) : null,
-          amount: bidvResponse.amount,
-          status: bidvResponse.status === 'paid' ? 'paid' : 'pending',
-          dueDate: new Date(bidvResponse.dueDate)
-        });
-      }
-
-      res.json({ 
-        bill: {
-          ...bill,
+      // Try BIDV API - only real data
+      try {
+        const bidvResponse = await bidvService.lookupBill({
           billNumber,
-          description: bidvResponse.description,
-          unit: bidvResponse.unit,
-          unitPrice: bidvResponse.unitPrice,
-          taxes: bidvResponse.taxes,
-          fees: bidvResponse.fees
-        }, 
-        customer,
-        source: 'bidv'
-      });
+          billType,
+          provider
+        });
+
+        // Create or find customer in local storage
+        let customer = await storage.getCustomer(billNumber);
+        if (!customer) {
+          customer = await storage.createCustomer({
+            customerId: billNumber,
+            name: bidvResponse.customerName,
+            address: bidvResponse.customerAddress,
+            phone: bidvResponse.customerPhone,
+            email: bidvResponse.customerEmail
+          });
+        }
+
+        // Create or find bill in local storage
+        let bill = await storage.getBillByCustomerId(billNumber, billType, provider);
+        if (!bill) {
+          bill = await storage.createBill({
+            customerId: billNumber,
+            billType,
+            provider,
+            period: bidvResponse.period || new Date().toISOString().slice(0, 7),
+            oldIndex: bidvResponse.oldReading ? parseInt(bidvResponse.oldReading) : null,
+            newIndex: bidvResponse.newReading ? parseInt(bidvResponse.newReading) : null,
+            consumption: bidvResponse.oldReading && bidvResponse.newReading ? 
+              parseInt(bidvResponse.newReading) - parseInt(bidvResponse.oldReading) : null,
+            amount: bidvResponse.amount,
+            status: bidvResponse.status === 'paid' ? 'paid' : 'pending',
+            dueDate: new Date(bidvResponse.dueDate)
+          });
+        }
+
+        res.json({ 
+          bill: {
+            ...bill,
+            billNumber,
+            description: bidvResponse.description,
+            unit: bidvResponse.unit,
+            unitPrice: bidvResponse.unitPrice,
+            taxes: bidvResponse.taxes,
+            fees: bidvResponse.fees
+          }, 
+          customer,
+          source: 'bidv_api'
+        });
+      } catch (error: any) {
+        // No fallback to fake data - return actual error
+        console.error('BIDV API Error:', error.message);
+        return res.status(503).json({ 
+          message: `Không thể tra cứu hóa đơn từ hệ thống BIDV: ${error.message}`,
+          details: "Vui lòng kiểm tra API credentials hoặc thử lại sau.",
+          billNumber,
+          source: 'bidv_api_error'
+        });
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
