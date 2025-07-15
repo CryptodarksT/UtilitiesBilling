@@ -17,9 +17,9 @@ export interface IStorage {
   
   // Bill operations
   getBillByCustomerId(customerId: string, billType: string, provider: string): Promise<Bill | undefined>;
-  getBillById(id: number): Promise<Bill | undefined>;
-  createBill(bill: InsertBill): Promise<Bill>;
-  updateBillStatus(id: number, status: string): Promise<void>;
+  getBillById(id: number | string): Promise<Bill | undefined>;
+  createBill(bill: InsertBill, customId?: string): Promise<Bill>;
+  updateBillStatus(id: number | string, status: string): Promise<void>;
   getBillsByCustomerId(customerId: string): Promise<Bill[]>;
   
   // Payment operations
@@ -31,7 +31,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private customers: Map<string, Customer>;
-  private bills: Map<number, Bill>;
+  private bills: Map<string, Bill>; // Changed to string for real API IDs
   private payments: Map<number, Payment>;
   private currentCustomerId: number = 1;
   private currentBillId: number = 1;
@@ -127,7 +127,7 @@ export class MemStorage implements IStorage {
     ];
 
     sampleBills.forEach(bill => {
-      this.bills.set(bill.id, bill);
+      this.bills.set(bill.id.toString(), bill);
     });
 
     this.currentCustomerId = 4;
@@ -159,13 +159,15 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
-  async getBillById(id: number): Promise<Bill | undefined> {
-    return this.bills.get(id);
+  async getBillById(id: number | string): Promise<Bill | undefined> {
+    const stringId = id.toString();
+    return this.bills.get(stringId);
   }
 
-  async createBill(insertBill: InsertBill): Promise<Bill> {
+  async createBill(insertBill: InsertBill, customId?: string): Promise<Bill> {
+    const billId = customId || this.currentBillId++;
     const bill: Bill = {
-      id: this.currentBillId++,
+      id: billId,
       ...insertBill,
       status: insertBill.status || "pending",
       oldIndex: insertBill.oldIndex || null,
@@ -173,15 +175,17 @@ export class MemStorage implements IStorage {
       consumption: insertBill.consumption || null,
       createdAt: new Date(),
     };
-    this.bills.set(bill.id, bill);
+    this.bills.set(billId.toString(), bill);
     return bill;
   }
 
-  async updateBillStatus(id: number, status: string): Promise<void> {
-    const bill = this.bills.get(id);
+  async updateBillStatus(id: number | string, status: string): Promise<void> {
+    const stringId = id.toString();
+    const bill = this.bills.get(stringId);
+    
     if (bill) {
       bill.status = status;
-      this.bills.set(id, bill);
+      this.bills.set(stringId, bill);
     }
   }
 

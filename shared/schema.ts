@@ -69,8 +69,15 @@ export const billNumberLookupSchema = z.object({
 });
 
 export const paymentRequestSchema = z.object({
-  billId: z.number(),
+  billId: z.union([z.number(), z.string()]),
   paymentMethod: z.string().min(1, "Vui lòng chọn phương thức thanh toán"),
+  cardData: z.object({
+    cardNumber: z.string().min(16, "Số thẻ không hợp lệ"),
+    cardHolder: z.string().min(1, "Vui lòng nhập tên chủ thẻ"),
+    expiryMonth: z.string().min(1, "Vui lòng chọn tháng hết hạn"),
+    expiryYear: z.string().min(1, "Vui lòng chọn năm hết hạn"),
+    cvv: z.string().min(3, "CVV không hợp lệ")
+  }).optional()
 });
 
 export type Customer = typeof customers.$inferSelect;

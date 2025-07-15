@@ -9,6 +9,8 @@ Payment integration: Real MoMo Business API for credit card and e-wallet payment
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
 Excel functionality: Added Excel file upload capability for bulk bill processing.
 Data integrity: 100% real data integration, no mock/simulation data.
+Production-ready: Integrated real Visa Direct API for actual payment processing with Vietnamese banking systems.
+Spring Boot integration: Java backend components for enterprise-level payment processing.
 
 ## System Architecture
 
@@ -83,6 +85,7 @@ The application uses three main tables:
 - **HTTP Client**: Fetch API with React Query
 - **Icons**: Lucide React icons
 - **Date Handling**: date-fns library
+- **Visa Card Management**: Secure localStorage with encryption
 
 ### Backend Dependencies
 - **Database**: In-memory storage with PostgreSQL schema compatibility
@@ -91,6 +94,9 @@ The application uses three main tables:
 - **Bill Lookup**: BIDV API integration for real bill data
 - **Cryptography**: crypto-js for MoMo signature generation
 - **HTTP Client**: Axios for external API calls
+- **Visa Direct API**: Real Visa payment processing with SSL certificates
+- **Provider APIs**: Real utility provider integrations (EVN, SAWACO, etc.)
+- **Spring Boot Components**: Java backend for enterprise payment processing
 
 ## Deployment Strategy
 

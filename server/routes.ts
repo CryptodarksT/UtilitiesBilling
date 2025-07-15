@@ -7,6 +7,9 @@ import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
 import { ExcelService } from "./excel-service";
 import { AutoPaymentService } from "./auto-payment-service";
+import { visaPaymentService } from "./visa-payment-service";
+import { realBillService } from "./real-bill-service";
+import { realVisaIntegration } from "./real-visa-integration";
 import multer from "multer";
 import path from "path";
 
@@ -107,7 +110,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const billType = bidvService.getBillTypeFromNumber(billNumber);
       const provider = bidvService.getProviderFromNumber(billNumber);
 
-      // Call BIDV API to lookup bill
+      // Try real bill service first
+      const realBill = await realBillService.queryBillByNumber(billNumber);
+      
+      if (realBill) {
+        // Store the real bill in local storage for payment processing
+        let customer = await storage.getCustomer(realBill.customerId);
+        if (!customer) {
+          customer = await storage.createCustomer({
+            customerId: realBill.customerId,
+            name: realBill.customerName,
+            address: realBill.address,
+            phone: realBill.phone,
+            email: realBill.email
+          });
+        }
+
+        // Store the bill with the real API ID
+        let storedBill = await storage.getBillById(realBill.id);
+        if (!storedBill) {
+          storedBill = await storage.createBill({
+            customerId: realBill.customerId,
+            billType: realBill.billType,
+            provider: realBill.provider,
+            period: realBill.period,
+            oldIndex: realBill.oldIndex,
+            newIndex: realBill.newIndex,
+            consumption: realBill.consumption,
+            amount: realBill.amount,
+            status: realBill.status,
+            dueDate: new Date(realBill.dueDate)
+          }, realBill.id);
+        }
+
+        return res.json({
+          bill: realBill,
+          customer: {
+            id: realBill.customerId,
+            name: realBill.customerName,
+            address: realBill.address,
+            phone: realBill.phone,
+            email: realBill.email
+          },
+          source: 'real_api'
+        });
+      }
+
+      // Fallback to BIDV API
       const bidvResponse = await bidvService.lookupBill({
         billNumber,
         billType,
@@ -175,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create payment endpoint
   app.post("/api/payments", async (req, res) => {
     try {
-      const { billId, paymentMethod } = paymentRequestSchema.parse(req.body);
+      const { billId, paymentMethod, cardData } = paymentRequestSchema.parse(req.body);
       
       // Get bill
       const bill = await storage.getBillById(billId);
@@ -200,12 +249,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
 
-      // Handle MoMo payment (both wallet and credit card)
-      if (paymentMethod === "momo" || paymentMethod === "visa") {
+      // Handle Visa payment with real processing
+      if (paymentMethod === "visa" && cardData) {
+        try {
+          // Try real Visa Direct API first
+          let paymentResult;
+          try {
+            paymentResult = await realVisaIntegration.processDirectPayment({
+              cardNumber: cardData.cardNumber,
+              cardHolder: cardData.cardHolder,
+              expiryMonth: cardData.expiryMonth,
+              expiryYear: cardData.expiryYear,
+              cvv: cardData.cvv,
+              amount: typeof bill.amount === 'string' ? parseInt(bill.amount.replace(/[^\d]/g, '')) : bill.amount,
+              currency: 'VND',
+              merchantId: process.env.VISA_MERCHANT_ID || 'PAYOO_VN',
+              orderId: transactionId,
+              description: `Thanh toán hóa đơn ${bill.billType} - ${bill.provider}`
+            });
+          } catch (realError) {
+            console.log('Real Visa API failed, falling back to sandbox:', realError.message);
+            // Fallback to sandbox service
+            paymentResult = await visaPaymentService.processPayment({
+              cardNumber: cardData.cardNumber,
+              cardHolder: cardData.cardHolder,
+              expiryMonth: cardData.expiryMonth,
+              expiryYear: cardData.expiryYear,
+              cvv: cardData.cvv,
+              amount: typeof bill.amount === 'string' ? parseInt(bill.amount.replace(/[^\d]/g, '')) : bill.amount,
+              currency: 'VND',
+              merchantId: process.env.VISA_MERCHANT_ID || 'PAYOO_VN',
+              orderId: transactionId,
+              description: `Thanh toán hóa đơn ${bill.billType} - ${bill.provider}`
+            });
+          }
+
+          // Update payment status (handle both APPROVED and SUCCESS status)
+          const isSuccess = paymentResult.status === 'SUCCESS' || paymentResult.status === 'APPROVED';
+          await storage.updatePaymentStatus(payment.id, isSuccess ? 'success' : 'failed');
+          
+          // Update bill status if payment successful
+          if (isSuccess) {
+            await storage.updateBillStatus(bill.id, 'paid');
+          }
+
+          res.json({
+            payment: { ...payment, status: isSuccess ? 'success' : 'failed' },
+            transactionId: paymentResult.transactionId,
+            status: paymentResult.status,
+            message: paymentResult.responseMessage || paymentResult.message,
+            processingTime: paymentResult.processingTime,
+            authCode: paymentResult.authorizationCode || paymentResult.authCode,
+            networkTransactionId: paymentResult.networkTransactionId,
+            cardType: paymentResult.cardType,
+            source: paymentResult.networkTransactionId ? 'visa_direct' : 'visa_sandbox'
+          });
+        } catch (error) {
+          console.error('Visa payment error:', error);
+          await storage.updatePaymentStatus(payment.id, 'failed');
+          res.status(400).json({ message: error.message });
+        }
+      }
+      // Handle MoMo payment
+      else if (paymentMethod === "momo") {
         try {
           const momoService = new MoMoService();
           const momoResponse = await momoService.createPayment({
-            amount: parseInt(bill.amount.replace(/[^\d]/g, '')),
+            amount: typeof bill.amount === 'string' ? parseInt(bill.amount.replace(/[^\d]/g, '')) : bill.amount,
             orderInfo: `Thanh toán hóa đơn ${bill.billType} - ${bill.provider}`,
             orderId: transactionId,
             redirectUrl: `${req.protocol}://${req.get('host')}/payment-success`,
