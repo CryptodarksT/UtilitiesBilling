@@ -1,12 +1,17 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema } from "@shared/schema";
+import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema, insertUserAccountSchema, cardLinkingSchema } from "@shared/schema";
 import { z } from "zod";
 import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
 import { ExcelService } from "./excel-service";
 import { AutoPaymentService } from "./auto-payment-service";
+import { CardService } from "./card-service";
+import { authenticateToken, requireVerification, type AuthenticatedRequest } from "./auth-middleware";
+import { db } from "./db";
+import { userAccounts, linkedCards } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 
@@ -439,6 +444,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Phone card purchase error:', error);
       res.status(500).json({ message: "Lỗi khi mua thẻ cào" });
+    }
+  });
+
+  // User registration endpoint
+  app.post("/api/auth/register", async (req: AuthenticatedRequest, res) => {
+    try {
+      const { firebaseUid, email, name, businessName, phone } = insertUserAccountSchema.parse(req.body);
+      
+      // Check if user already exists
+      const [existingUser] = await db
+        .select()
+        .from(userAccounts)
+        .where(eq(userAccounts.firebaseUid, firebaseUid));
+
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Create new user
+      const [newUser] = await db
+        .insert(userAccounts)
+        .values({
+          firebaseUid,
+          email,
+          name,
+          businessName,
+          phone,
+        })
+        .returning();
+
+      res.json({ 
+        message: "User registered successfully",
+        user: newUser 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error('Registration error:', error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  // Get user profile
+  app.get("/api/auth/profile", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      res.json({ user: req.user });
+    } catch (error) {
+      console.error('Profile error:', error);
+      res.status(500).json({ message: "Failed to get profile" });
+    }
+  });
+
+  // Link card to customer
+  app.post("/api/cards/link", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const cardData = cardLinkingSchema.parse(req.body);
+      const cardService = new CardService();
+      
+      const linkedCard = await cardService.linkCard({
+        userId: req.user!.userData.id,
+        ...cardData,
+      });
+
+      res.json({
+        message: "Card linked successfully",
+        card: linkedCard
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      console.error('Card linking error:', error);
+      res.status(500).json({ message: "Failed to link card" });
+    }
+  });
+
+  // Get user's linked cards
+  app.get("/api/cards", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const cardService = new CardService();
+      const cards = await cardService.getUserCards(req.user!.userData.id);
+      
+      res.json({ cards });
+    } catch (error) {
+      console.error('Get cards error:', error);
+      res.status(500).json({ message: "Failed to get cards" });
+    }
+  });
+
+  // Set default card
+  app.patch("/api/cards/:cardId/default", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      const cardService = new CardService();
+      
+      const updatedCard = await cardService.setDefaultCard(cardId, req.user!.userData.id);
+      
+      res.json({
+        message: "Default card updated",
+        card: updatedCard
+      });
+    } catch (error) {
+      console.error('Set default card error:', error);
+      res.status(500).json({ message: "Failed to set default card" });
+    }
+  });
+
+  // Remove card
+  app.delete("/api/cards/:cardId", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const cardId = parseInt(req.params.cardId);
+      const cardService = new CardService();
+      
+      await cardService.deactivateCard(cardId, req.user!.userData.id);
+      
+      res.json({ message: "Card removed successfully" });
+    } catch (error) {
+      console.error('Remove card error:', error);
+      res.status(500).json({ message: "Failed to remove card" });
+    }
+  });
+
+  // Generate customer token for auto-payment
+  app.post("/api/tokens/generate", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { customerId } = req.body;
+      const cardService = new CardService();
+      
+      const token = await cardService.generateCustomerToken(
+        req.user!.userData.id,
+        customerId
+      );
+      
+      res.json({
+        message: "Token generated successfully",
+        token,
+        customerId
+      });
+    } catch (error) {
+      console.error('Generate token error:', error);
+      res.status(500).json({ message: "Failed to generate token" });
+    }
+  });
+
+  // Auto-payment with linked card
+  app.post("/api/payments/auto-card", async (req, res) => {
+    try {
+      const { token, billId, cardId } = req.body;
+      const cardService = new CardService();
+      
+      // Validate token
+      const { userId } = await cardService.validateCustomerToken(token);
+      
+      // Get card details
+      const card = await cardService.getCardForPayment(cardId, userId);
+      
+      // Get bill
+      const bill = await storage.getBillById(billId);
+      if (!bill) {
+        return res.status(404).json({ message: "Bill not found" });
+      }
+
+      // Process payment with MoMo using linked card
+      const momoService = new MoMoService();
+      const transactionId = `AUTO${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      
+      try {
+        const payment = await storage.createPayment({
+          billId,
+          customerId: bill.customerId,
+          amount: bill.amount,
+          paymentMethod: "auto_card",
+          transactionId,
+          status: "pending",
+        });
+
+        // In a real implementation, you would:
+        // 1. Use card details to process payment via MoMo
+        // 2. Handle the response and update payment status
+        // For now, we'll simulate success
+        
+        setTimeout(async () => {
+          await storage.updatePaymentStatus(payment.id, "completed");
+          await storage.updateBillStatus(billId, "paid");
+        }, 2000);
+
+        res.json({
+          message: "Auto-payment processed successfully",
+          payment,
+          transactionId
+        });
+      } catch (error) {
+        console.error('Auto-payment error:', error);
+        res.status(500).json({ message: "Auto-payment failed" });
+      }
+    } catch (error) {
+      console.error('Auto-payment validation error:', error);
+      res.status(401).json({ message: "Invalid token or card" });
     }
   });
 

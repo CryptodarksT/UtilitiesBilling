@@ -1,0 +1,418 @@
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: iBank_ Bill Inquiry
+  x-ibm-languages:
+    title:
+      en: iBank_ Bill Inquiry
+      vi: Vấn tin thông tin hóa đơn
+    description:
+      en: Bill Inquiry
+      vi: Vấn tin thông tin hóa đơn
+  x-ibm-name: ibank-bill-payment-bill-inquiry
+  description: Bill Inquiry
+basePath: /bidv/sandbox/open-banking/ibank/billPayment
+x-ibm-configuration:
+  cors:
+    enabled: true
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  application-authentication-source:
+    - header
+  application-authentication:
+    certificate: true
+  servers:
+    - url: https://openapi.bidv.com.vn/bidv/sandbox/open-banking/ibank/billPayment
+      type:
+        - Production
+        - Development
+  oauth-servers:
+    ibank-oauth:
+      tokenUrls:
+        - https://openapi.bidv.com.vn/bidv/sandbox/ibank-sandbox-oauth/oauth2/token
+      authorizationUrls:
+        - https://openapi.bidv.com.vn/bidv/sandbox/ibank-sandbox-oauth/oauth2/authorize
+      refreshUrls: []
+paths:
+  /inquiryBills/v1:
+    post:
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Res_InquiryBills_OK'
+        '400':
+          $ref: '#/responses/400'
+        '401':
+          $ref: '#/responses/401'
+        '500':
+          $ref: '#/responses/500'
+      operationId: billPayment_InquiryBills
+      description: Bill Inquiry
+      summary: Bill Inquiry
+      x-ibm-languages:
+        description:
+          en: Bill Inquiry
+          vi: Vấn tin thông tin hóa đơn
+        summary:
+          en: iBank_ Bill Inquiry
+          vi: iBank_ Vấn tin thông tin hóa đơn
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Req_000_InquiryBills_Body'
+      security:
+        - ibank-oauth:
+            - read
+    parameters:
+      - $ref: '#/parameters/X-Idempotency-Key'
+      - $ref: '#/parameters/X-Customer-IP-Address'
+      - $ref: '#/parameters/X-API-Interaction-ID'
+      - $ref: '#/parameters/X-JWS-Signature'
+      - $ref: '#/parameters/User-Agent'
+      - $ref: '#/parameters/Timestamp'
+      - $ref: '#/parameters/Channel'
+securityDefinitions:
+  ibank-oauth:
+    type: oauth2
+    x-ibm-oauth-provider: ibank-sandbox
+    authorizationUrl: https://openapi.bidv.com.vn/bidv/sandbox/ibank-sandbox-oauth/oauth2/authorize
+    tokenUrl: https://openapi.bidv.com.vn/bidv/sandbox/ibank-sandbox-oauth/oauth2/token
+    scopes:
+      read: ' this is read scope'
+      create: ' this is create scope'
+    flow: accessCode
+security:
+  - ibank-oauth:
+      - create
+      - read
+definitions:
+  Req_JWE_Payload:
+    type: object
+    description: Request truyền lên đã mã hóa JWE
+    properties:
+      recipients:
+        type: array
+        items:
+          $ref: '#/definitions/Req_Recipients_Part'
+      protected:
+        type: string
+        description: JWE Protected Header
+        example: eyJhbGciOiJBMjU2S1ciLCJlbmMiOiJBMTI4R0NNIn0
+      ciphertext:
+        type: string
+        example: qEi86RfrK7S3gyuu8N8xTOLWEnADyJBpAq8A66poLCoyOeOmhbv5ky1SRR0UvN2FKyf_1UIJHTZ2Uyhv2vymXiIvayu5CrMIQ9ZbfNcoknyJkt-VLyweIbSHBj5QiJJTfdR3qOJyVptKYFaCQDfXPHLGUYEp--vi9vGgQC8r5MXjSwGrLrQXM889iHqh8R1DP2G3mvK3BilO-wZbhplwKJjuP07wVmdDJnBZoORKnHteeZOnaL_EKgyPQzeV9jZywTi6IM30I8bn7JvjMybptDef3T-Db0LafGZy0fQc8OEtUTm7Kwlo9em-rLJDmQrIDfqxKs6abgoiGqoxMy92dnim_vKT7SLObrmSE5ykKz_ay8TrYhKb7cCpMj7jL3d6_7-XVb9sfg0yHST9E7ZS9GKQ7B3B9VAzr6gfjlOZM39Bi64MZczyUS3JPm7eOkymJIrA-q3xFcT10YcDvYpb6IXwxuGF8Amf9cBm
+        description: JWE Ciphertext
+      iv:
+        type: string
+        example: Ts7s2sn_Cnbwukgh
+        description: JWE Initialization Vector
+      tag:
+        type: string
+        example: _hwNGOZ-m6Vze6sY2QUxNw
+        description: JWE Authentication Tag
+  Req_Recipients_Part:
+    type: object
+    description: JWE recipients
+    additionalProperties: false
+    properties:
+      header:
+        type: object
+        description: Describe the encryption applied to the plaintext and optionally additional properties of the JWE
+        example: {}
+      encrypted_key:
+        type: string
+        example: vYqt7OrbYtAsFYS8NuRwNoir2ohrRuPL
+        description: Encrypted Key value
+  Req_BE_Common_Header:
+    x-internal: true
+    type: object
+    properties:
+      appCode:
+        type: string
+      requestID:
+        type: string
+      accessToken:
+        type: string
+      checksum:
+        type: string
+  Req_000_InquiryBills_Body:
+    type: object
+    description: Request body truoc khi ma hoa - InquiryBills
+    properties:
+      body:
+        type: object
+        required:
+          - accountNo
+          - serviceId
+          - payerId
+        properties:
+          amount:
+            type: string
+            description: Amount
+            example: '299000'
+          accountName:
+            type: string
+            description: Account Name
+            example: TAP DOAN CONG NGHIEP - VIEN THONG QUAN DOI
+          payerAddr:
+            type: string
+            description: Payer address
+            example: HN
+          accountNo:
+            type: string
+            description: Account Number
+            example: '12010000000730'
+          payerId:
+            type: string
+            description: Payer Id
+            example: '123456789'
+          payerName:
+            type: string
+            description: Payer Name
+            example: '123456789'
+          infoEx:
+            type: string
+            description: Extra information
+            example: '99999'
+          serviceId:
+            type: string
+            description: Service Id
+            example: '68001'
+  Req_BE_InquiryBills:
+    type: object
+    properties:
+      header:
+        type: object
+        $ref: '#/definitions/Req_BE_Common_Header'
+      body:
+        type: object
+        properties:
+          amount:
+            type: string
+          accountName:
+            type: string
+          payerAddr:
+            type: string
+          accountNo:
+            type: string
+          payerId:
+            type: string
+          payerName:
+            type: string
+          infoEx:
+            type: string
+          serviceId:
+            type: string
+          cif:
+            type: string
+  Res_InquiryBills_OK:
+    type: object
+    properties:
+      MSG:
+        type: string
+        description: Message
+      RESULT_DETAIL:
+        type: string
+        description: Message
+      PAYER_NAME:
+        type: string
+        description: Payer name
+        example: Nguyen Van A
+      RESULT_CODE:
+        type: string
+        description: Result code
+        example: '0'
+      INFO_EX:
+        type: string
+        description: extra information
+      MESSAGE_CODE:
+        type: string
+        description: Message code
+        example: '1000'
+      BILLS:
+        type: array
+        description: List of bills
+        items:
+          $ref: '#/definitions/Z_BillInfo'
+      PAYER_ADDR:
+        type: string
+        description: Payer address
+        example: HN
+      TOTAL_AMOUNT:
+        type: string
+        description: Total Amount
+        example: '409000'
+      x_inquiry_res:
+        type: string
+        description: Inquiry response in XML format
+  Z_BillInfo:
+    type: object
+    properties:
+      BILL_ID:
+        type: string
+        description: Bill id
+        example: BIDV22012000109843
+      SUB_AMOUNT:
+        type: string
+        description: Bill total amount
+        example: '409000'
+      BILL_INFO:
+        type: string
+        description: Bill information
+        example: OL@068001_4345_4345
+      PERIOD:
+        type: string
+        description: Period
+      VAT:
+        type: string
+        description: VAT
+        example: '10000'
+      ID:
+        type: string
+        description: ID
+        example: '2081364'
+      CURR:
+        type: string
+        description: Currency
+        example: VND
+      AMOUNT_TEXT:
+        type: string
+        description: amount in text
+        example: Toàn bộ nợ \\cước
+      BILL_AMOUNT:
+        type: string
+        description: Bill amount
+        example: '299000'
+      CHARGE:
+        type: string
+        description: Fee
+        example: '10000'
+      DISCOUNT:
+        type: string
+        description: Discount
+        example: '0'
+  Response500Error:
+    type: object
+    description: 500 Internal Server Error
+    properties:
+      errorResponse:
+        type: object
+        properties:
+          metadata:
+            type: object
+            properties:
+              status:
+                type: object
+                properties:
+                  code:
+                    example: GWYBE200
+                  desc:
+                    example: Transaction cannot be processed. Please contact support
+          additionalInfo:
+            type: object
+            properties:
+              detailedError:
+                type: object
+                properties:
+                  errorCode:
+                    example: '99'
+                  desc:
+                    example: Transaction can not be processed. Please try again later!
+  Response400Error:
+    type: object
+    description: 400 Bad Request
+    properties:
+      errorResponse:
+        type: object
+        properties:
+          metadata:
+            type: object
+            properties:
+              status:
+                type: object
+                properties:
+                  code:
+                    example: GWYCE4102
+                  desc:
+                    example: Invalid Request. Please refer Portal API Documentation
+          additionalInfo:
+            type: object
+            example: {}
+  Response401Error:
+    type: object
+    description: 401 Unauthorized
+    properties:
+      httpCode:
+        type: string
+        example: '401'
+      httpMessage:
+        type: string
+        example: Unauthorized
+      moreInformation:
+        type: string
+        example: Cannot pass the security checks that are required by the target API or operation, Enable debug headers for more details.
+responses:
+  '400':
+    description: 400 Bad Request
+    schema:
+      $ref: '#/definitions/Response400Error'
+  '401':
+    description: 401 Unauthorized
+    schema:
+      $ref: '#/definitions/Response401Error'
+  '500':
+    description: 500 Internal Server Error
+    schema:
+      $ref: '#/definitions/Response500Error'
+schemes:
+  - https
+parameters:
+  X-Idempotency-Key:
+    in: header
+    name: X-Idempotency-Key
+    type: string
+  X-Customer-IP-Address:
+    in: header
+    name: X-Customer-IP-Address
+    type: string
+  X-API-Interaction-ID:
+    in: header
+    name: X-API-Interaction-ID
+    required: true
+    type: string
+    description: RequestId
+  X-JWS-Signature:
+    in: header
+    name: X-JWS-Signature
+    required: true
+    type: string
+    description: Detached JWS signature of the body
+  User-Agent:
+    in: header
+    name: User-Agent
+    required: true
+    type: string
+    description: Application identifier or Channel value
+  Timestamp:
+    in: header
+    name: Timestamp
+    required: true
+    type: string
+    format: date-time
+  Channel:
+    in: header
+    name: Channel
+    required: true
+    type: string
+    pattern: ^[A-Za-z0-9_-]{2,20}$
+    description: Channel Id
+host: openapi.bidv.com.vn
