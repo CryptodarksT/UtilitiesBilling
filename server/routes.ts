@@ -8,6 +8,7 @@ import { BIDVService } from "./bidv-service";
 import { ExcelService } from "./excel-service";
 import { AutoPaymentService } from "./auto-payment-service";
 import { CardService } from "./card-service";
+import { VNPayService } from "./vnpay-service";
 import { authenticateToken, requireVerification, type AuthenticatedRequest } from "./auth-middleware";
 import { db } from "./db";
 import { userAccounts, linkedCards } from "@shared/schema";
@@ -497,19 +498,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Link card to customer
+  // Link card to customer with 3DS verification
   app.post("/api/cards/link", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const cardData = cardLinkingSchema.parse(req.body);
       const cardService = new CardService();
+      const vnpayService = new VNPayService();
       
+      // Check if card is Visa and requires 3DS
+      const isVisaCard = cardData.cardNumber.replace(/\s/g, '').startsWith('4');
+      
+      if (isVisaCard && req.body.cvv) {
+        // Initiate 3DS verification for Visa cards
+        const verification3DS = await vnpayService.initiate3DSVerification({
+          cardNumber: cardData.cardNumber,
+          cardHolderName: cardData.cardHolderName,
+          expiryMonth: cardData.expiryMonth || '',
+          expiryYear: cardData.expiryYear || '',
+          cvv: req.body.cvv,
+          amount: 1000, // Small verification amount
+          orderId: `VERIFY${Date.now()}`,
+          orderInfo: 'Card verification',
+          ipAddr: req.ip || '127.0.0.1'
+        });
+
+        if (verification3DS.vnp_3DSUrl) {
+          // Need 3DS verification - return URL for popup/redirect
+          return res.json({
+            requires3DS: true,
+            verificationUrl: verification3DS.vnp_3DSUrl,
+            verificationData: verification3DS.vnp_3DSData,
+            message: "Yêu cầu xác minh 3DS"
+          });
+        }
+      }
+      
+      // Link card without 3DS (for non-Visa or if 3DS not required)
       const linkedCard = await cardService.linkCard({
         userId: req.user!.userData.id,
         ...cardData,
       });
 
       res.json({
-        message: "Card linked successfully",
+        message: "Thẻ đã được liên kết thành công",
         card: linkedCard
       });
     } catch (error) {
@@ -517,7 +548,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.errors[0].message });
       }
       console.error('Card linking error:', error);
-      res.status(500).json({ message: "Failed to link card" });
+      res.status(500).json({ message: "Không thể liên kết thẻ" });
+    }
+  });
+
+  // 3DS verification callback
+  app.get("/api/cards/3ds-callback", async (req, res) => {
+    try {
+      const vnpayService = new VNPayService();
+      const cardService = new CardService();
+      
+      // Verify 3DS callback
+      const isValid = vnpayService.verify3DSCallback(req.query);
+      
+      if (isValid) {
+        // Extract card data from 3DS response
+        const verificationData = req.query.vnp_3DSData 
+          ? JSON.parse(Buffer.from(req.query.vnp_3DSData as string, 'base64').toString())
+          : null;
+          
+        if (verificationData && verificationData.cardToken) {
+          // Update card with token and 3DS verification status
+          const updatedCard = await db
+            .update(linkedCards)
+            .set({
+              cardToken: verificationData.cardToken,
+              is3DSVerified: true,
+              verifiedAt: new Date()
+            })
+            .where(eq(linkedCards.id, verificationData.cardId))
+            .returning();
+            
+          res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}/cards?status=success`);
+        } else {
+          res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}/cards?status=failed&message=invalid_data`);
+        }
+      } else {
+        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}/cards?status=failed&message=verification_failed`);
+      }
+    } catch (error) {
+      console.error('3DS callback error:', error);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}/cards?status=failed`);
     }
   });
 
@@ -586,6 +657,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Generate token error:', error);
       res.status(500).json({ message: "Failed to generate token" });
+    }
+  });
+
+  // Process payment with linked Visa card (3DS verified)
+  app.post("/api/payments/visa-card", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { billId, cardId, cvv } = req.body;
+      const cardService = new CardService();
+      const vnpayService = new VNPayService();
+      
+      // Get card details
+      const card = await cardService.getCardForPayment(cardId, req.user!.userData.id);
+      
+      // Check if card is 3DS verified
+      if (!card.is3DSVerified) {
+        return res.status(400).json({ 
+          message: "Thẻ chưa được xác minh 3DS. Vui lòng xác minh thẻ trước khi thanh toán." 
+        });
+      }
+      
+      // Get bill
+      const bill = await storage.getBillById(billId);
+      if (!bill) {
+        return res.status(404).json({ message: "Không tìm thấy hóa đơn" });
+      }
+
+      const transactionId = `VISA${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      
+      try {
+        // Create payment record
+        const payment = await storage.createPayment({
+          billId,
+          customerId: bill.customerId,
+          amount: bill.amount,
+          paymentMethod: "visa_card",
+          transactionId,
+          status: "pending",
+        });
+
+        // Process payment with VNPay using card token
+        const paymentResult = await vnpayService.processCardPayment({
+          cardToken: card.cardToken!,
+          amount: parseFloat(bill.amount),
+          orderId: transactionId,
+          orderInfo: `Thanh toán hóa đơn ${bill.billType} - ${bill.customerId}`,
+          ipAddr: req.ip || '127.0.0.1',
+          cvv: cvv // Optional CVV for additional security
+        });
+
+        if (paymentResult.vnp_ResponseCode === '00') {
+          // Payment successful
+          await storage.updatePaymentStatus(payment.id, "completed");
+          await storage.updateBillStatus(billId, "paid");
+          
+          // Update card last used
+          await db
+            .update(linkedCards)
+            .set({ lastUsed: new Date() })
+            .where(eq(linkedCards.id, cardId));
+
+          res.json({
+            message: "Thanh toán thành công",
+            payment,
+            transactionId,
+            bankTransactionNo: paymentResult.vnp_TransactionNo
+          });
+        } else {
+          // Payment failed
+          await storage.updatePaymentStatus(payment.id, "failed");
+          
+          res.status(400).json({
+            message: "Thanh toán thất bại",
+            error: paymentResult.vnp_Message
+          });
+        }
+      } catch (error) {
+        console.error('Visa payment error:', error);
+        res.status(500).json({ message: "Lỗi xử lý thanh toán" });
+      }
+    } catch (error) {
+      console.error('Visa payment validation error:', error);
+      res.status(401).json({ message: "Thông tin không hợp lệ" });
+    }
+  });
+
+  // Create 3DS payment URL for web-based flow
+  app.post("/api/payments/3ds-url", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { billId, amount } = req.body;
+      const vnpayService = new VNPayService();
+      
+      const transactionId = `3DS${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      
+      const paymentUrl = vnpayService.create3DSPaymentUrl({
+        amount: amount,
+        orderId: transactionId,
+        orderInfo: `Payment for bill ${billId}`,
+        bankCode: 'VISA',
+        ipAddr: req.ip || '127.0.0.1'
+      });
+      
+      res.json({
+        paymentUrl,
+        transactionId
+      });
+    } catch (error) {
+      console.error('3DS URL error:', error);
+      res.status(500).json({ message: "Không thể tạo link thanh toán" });
     }
   });
 

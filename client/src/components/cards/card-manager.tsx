@@ -20,6 +20,7 @@ interface LinkedCard {
   cardHolderName: string;
   bankName?: string;
   isDefault: boolean;
+  is3DSVerified?: boolean;
   createdAt: string;
 }
 
@@ -120,7 +121,33 @@ export default function CardManager() {
 
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addCardMutation.mutateAsync(formData);
+    
+    // Include CVV in the request for Visa cards
+    const requestData = {
+      ...formData,
+      ...(formData.cardType === 'visa' && formData.cvv ? { cvv: formData.cvv } : {})
+    };
+    
+    const response = await addCardMutation.mutateAsync(requestData);
+    
+    // Check if 3DS verification is required
+    if (response.requires3DS) {
+      // Open 3DS verification in a popup window
+      const popup = window.open(
+        response.verificationUrl,
+        '3DS Verification',
+        'width=500,height=600,menubar=no,toolbar=no'
+      );
+      
+      // Wait for popup to close
+      const checkPopup = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkPopup);
+          // Refresh cards list to show newly added card
+          queryClient.invalidateQueries({ queryKey: ['linkedCards'] });
+        }
+      }, 1000);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,6 +284,24 @@ export default function CardManager() {
                 />
               </div>
               
+              {formData.cardType === 'visa' && (
+                <div className="space-y-2">
+                  <Label htmlFor="cvv">CVV * (Bắt buộc cho thẻ Visa)</Label>
+                  <Input
+                    id="cvv"
+                    name="cvv"
+                    type="password"
+                    placeholder="123"
+                    maxLength={4}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cvv: e.target.value }))}
+                    required={formData.cardType === 'visa'}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Mã CVV cần thiết để xác minh 3D Secure cho thẻ Visa
+                  </p>
+                </div>
+              )}
+              
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -316,6 +361,12 @@ export default function CardManager() {
                       <Badge variant="secondary">
                         <Star className="h-3 w-3 mr-1" />
                         Mặc định
+                      </Badge>
+                    )}
+                    {card.is3DSVerified && (
+                      <Badge variant="success" className="bg-green-500/10 text-green-500">
+                        <Shield className="h-3 w-3 mr-1" />
+                        3DS Verified
                       </Badge>
                     )}
                     <Badge variant="outline" className="capitalize">

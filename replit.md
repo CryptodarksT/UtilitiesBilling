@@ -11,6 +11,7 @@ Excel functionality: Added Excel file upload capability for bulk bill processing
 Data integrity: 100% real data integration, no mock/simulation data.
 Authentication: Firebase authentication with Google sign-in for business accounts (implemented and working).
 Card management: Encrypted card storage with Firebase/Google Cloud integration for business customers.
+3DS verification: Full 3D Secure verification for Visa cards via VNPay integration (implemented with popup/redirect flow).
 
 ## System Architecture
 
@@ -38,10 +39,13 @@ The application follows a monorepo structure with shared code:
 ## Key Components
 
 ### Database Schema
-The application uses three main tables:
+The application uses six main tables:
 - **customers** - Store customer information (ID, name, address, phone, email)
 - **bills** - Store bill information (customer ID, bill type, provider, amount, status, due date)
 - **payments** - Store payment records (bill ID, amount, payment method, transaction ID, status)
+- **userAccounts** - Business user accounts with Firebase authentication
+- **linkedCards** - Encrypted card storage with 3DS verification (cardToken, is3DSVerified, verifiedAt, lastUsed)
+- **customerTokens** - Secure tokens for auto-payment functionality
 
 ### API Endpoints
 - `POST /api/bills/lookup` - Search for bills by customer ID and bill type
@@ -65,6 +69,9 @@ The application uses three main tables:
 - `DELETE /api/cards/:cardId` - Remove linked payment card
 - `POST /api/tokens/generate` - Generate customer token for auto-payment
 - `POST /api/payments/auto-card` - Process payment with linked card
+- `GET /api/cards/3ds-callback` - 3DS verification callback for Visa cards
+- `POST /api/payments/visa-card` - Process payment with 3DS verified Visa card
+- `POST /api/payments/3ds-url` - Create 3DS payment URL for web-based flow
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills
@@ -99,6 +106,7 @@ The application uses three main tables:
 - **Validation**: Zod schemas shared between frontend and backend
 - **Payment Processing**: MoMo Business API integration
 - **Bill Lookup**: BIDV API integration for real bill data
+- **3DS Verification**: VNPay integration for Visa card 3D Secure authentication
 - **Cryptography**: crypto-js for MoMo signature generation
 - **HTTP Client**: Axios for external API calls
 

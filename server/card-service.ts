@@ -18,6 +18,15 @@ export class CardService {
     return bytes.toString(CryptoJS.enc.Utf8);
   }
 
+  private encryptCardData(data: any): string {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), ENCRYPTION_KEY).toString();
+  }
+
+  private decryptCardData(encryptedData: string): any {
+    const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  }
+
   async linkCard(data: {
     userId: number;
     customerId: string;

@@ -64,6 +64,10 @@ export const linkedCards = pgTable("linked_cards", {
   expiryMonth: text("expiry_month"),
   expiryYear: text("expiry_year"),
   bankName: text("bank_name"),
+  cardToken: text("card_token"), // Tokenized card for payment processing
+  is3DSVerified: boolean("is_3ds_verified").default(false),
+  verifiedAt: timestamp("verified_at"),
+  lastUsed: timestamp("last_used"),
   isDefault: boolean("is_default").default(false),
   isActive: boolean("is_active").default(true),
   momoToken: text("momo_token"), // For MoMo linked cards
