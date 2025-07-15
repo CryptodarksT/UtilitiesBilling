@@ -10,6 +10,7 @@ import PaymentMethods from "@/components/payment-methods";
 import PaymentModal from "@/components/payment-modal";
 import StatsCards from "@/components/stats-cards";
 import ExcelUpload from "@/components/excel-upload";
+import AutoPayment from "@/components/auto-payment";
 import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
@@ -103,9 +104,10 @@ export default function Home() {
         {/* Main Content Tabs */}
         <div className="mb-8">
           <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
               <TabsTrigger value="excel">Upload Excel</TabsTrigger>
+              <TabsTrigger value="auto">Thanh toán tự động</TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="mt-6">
@@ -114,6 +116,10 @@ export default function Home() {
             
             <TabsContent value="excel" className="mt-6">
               <ExcelUpload />
+            </TabsContent>
+            
+            <TabsContent value="auto" className="mt-6">
+              <AutoPayment />
             </TabsContent>
           </Tabs>
         </div>

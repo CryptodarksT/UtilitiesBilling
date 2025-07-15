@@ -6,6 +6,7 @@ import { z } from "zod";
 import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
 import { ExcelService } from "./excel-service";
+import { AutoPaymentService } from "./auto-payment-service";
 import multer from "multer";
 import path from "path";
 
@@ -337,6 +338,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ providers: providerList });
     } catch (error) {
       res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+  });
+
+  // Auto-payment endpoint
+  app.post("/api/payments/auto", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Không có file được upload" });
+      }
+      
+      const visaCardToken = req.body.visaCardToken || process.env.VISA_CARD_TOKEN;
+      
+      const autoPaymentService = new AutoPaymentService();
+      const result = await autoPaymentService.processAutoPaymentFile(req.file.buffer, visaCardToken);
+      
+      res.json({
+        message: `Đã xử lý ${result.summary.total} hóa đơn`,
+        results: result.results,
+        summary: result.summary
+      });
+    } catch (error: any) {
+      console.error('Auto payment error:', error);
+      res.status(500).json({ message: error.message || "Lỗi xử lý thanh toán tự động" });
+    }
+  });
+
+  // Download auto-payment template
+  app.get("/api/payments/auto/template", async (req, res) => {
+    try {
+      const autoPaymentService = new AutoPaymentService();
+      const buffer = autoPaymentService.generateTemplateFile();
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=auto-payment-template.xlsx');
+      res.send(buffer);
+    } catch (error: any) {
+      console.error('Generate template error:', error);
+      res.status(500).json({ message: "Lỗi tạo file template" });
+    }
+  });
+
+  // Download auto-payment report
+  app.post("/api/payments/auto/report", async (req, res) => {
+    try {
+      const { results } = req.body;
+      
+      if (!results || !Array.isArray(results)) {
+        return res.status(400).json({ message: "Dữ liệu kết quả không hợp lệ" });
+      }
+      
+      const autoPaymentService = new AutoPaymentService();
+      const buffer = autoPaymentService.generateResultReport(results);
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=auto-payment-report.xlsx');
+      res.send(buffer);
+    } catch (error: any) {
+      console.error('Generate report error:', error);
+      res.status(500).json({ message: "Lỗi tạo báo cáo" });
     }
   });
 
