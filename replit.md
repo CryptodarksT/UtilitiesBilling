@@ -5,6 +5,7 @@ This is a full-stack web application built with React on the frontend and Expres
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Communication language: Vietnamese (always reply in Vietnamese).
 Payment integration: Real MoMo Business API for credit card and e-wallet payments (not demo/simulation).
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
 Excel functionality: Added Excel file upload capability for bulk bill processing.
