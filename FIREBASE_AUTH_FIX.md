@@ -13,6 +13,11 @@ Domain Replit của bạn chưa được phép truy cập Firebase Authenticatio
 https://a9e3c388-0336-41e8-bc65-763a65a88cb9-00-1hsiywfbxgh0f.picard.replit.dev
 ```
 
+## OAuth đã cấu hình:
+✓ Client ID: 339580374296-qfuqibsucua1v7pk5r8nb6sg77enfj1m.apps.googleusercontent.com
+✓ Project ID: ai-futures-2025
+✓ Redirect URIs và JavaScript origins đã có domain Replit
+
 ## Các bước khắc phục:
 
 ### Bước 1: Thêm domain vào Firebase Console
