@@ -39,53 +39,6 @@ export const payments = pgTable("payments", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// User accounts for business customers
-export const userAccounts = pgTable("user_accounts", {
-  id: serial("id").primaryKey(),
-  firebaseUid: text("firebase_uid").notNull().unique(),
-  email: text("email").notNull().unique(),
-  name: text("name").notNull(),
-  businessName: text("business_name"),
-  phone: text("phone"),
-  isVerified: boolean("is_verified").default(false),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Linked cards for customers
-export const linkedCards = pgTable("linked_cards", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => userAccounts.id),
-  customerId: text("customer_id").notNull(),
-  cardType: text("card_type").notNull(), // visa, mastercard, local_bank
-  cardNumber: text("card_number").notNull(), // Encrypted
-  cardHolderName: text("card_holder_name").notNull(),
-  expiryMonth: text("expiry_month"),
-  expiryYear: text("expiry_year"),
-  bankName: text("bank_name"),
-  cardToken: text("card_token"), // Tokenized card for payment processing
-  is3DSVerified: boolean("is_3ds_verified").default(false),
-  verifiedAt: timestamp("verified_at"),
-  lastUsed: timestamp("last_used"),
-  isDefault: boolean("is_default").default(false),
-  isActive: boolean("is_active").default(true),
-  momoToken: text("momo_token"), // For MoMo linked cards
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Customer tokens for auto-payment
-export const customerTokens = pgTable("customer_tokens", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => userAccounts.id),
-  customerId: text("customer_id").notNull(),
-  token: text("token").notNull().unique(),
-  isActive: boolean("is_active").default(true),
-  lastUsed: timestamp("last_used"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const insertCustomerSchema = createInsertSchema(customers).omit({
   id: true,
   createdAt: true,
@@ -120,47 +73,12 @@ export const paymentRequestSchema = z.object({
   paymentMethod: z.string().min(1, "Vui lòng chọn phương thức thanh toán"),
 });
 
-export const insertUserAccountSchema = createInsertSchema(userAccounts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertLinkedCardSchema = createInsertSchema(linkedCards).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCustomerTokenSchema = createInsertSchema(customerTokens).omit({
-  id: true,
-  createdAt: true,
-  lastUsed: true,
-});
-
-export const cardLinkingSchema = z.object({
-  customerId: z.string().min(1, "Vui lòng nhập mã khách hàng"),
-  cardType: z.string().min(1, "Vui lòng chọn loại thẻ"),
-  cardNumber: z.string().min(16, "Số thẻ không hợp lệ"),
-  cardHolderName: z.string().min(1, "Vui lòng nhập tên chủ thẻ"),
-  expiryMonth: z.string().optional(),
-  expiryYear: z.string().optional(),
-  bankName: z.string().optional(),
-});
-
 export type Customer = typeof customers.$inferSelect;
 export type Bill = typeof bills.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
-export type UserAccount = typeof userAccounts.$inferSelect;
-export type LinkedCard = typeof linkedCards.$inferSelect;
-export type CustomerToken = typeof customerTokens.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
-export type InsertUserAccount = z.infer<typeof insertUserAccountSchema>;
-export type InsertLinkedCard = z.infer<typeof insertLinkedCardSchema>;
-export type InsertCustomerToken = z.infer<typeof insertCustomerTokenSchema>;
 export type BillLookup = z.infer<typeof billLookupSchema>;
 export type BillNumberLookup = z.infer<typeof billNumberLookupSchema>;
 export type PaymentRequest = z.infer<typeof paymentRequestSchema>;
-export type CardLinking = z.infer<typeof cardLinkingSchema>;

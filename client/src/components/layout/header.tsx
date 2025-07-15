@@ -1,19 +1,14 @@
 import { Link, useLocation } from "wouter";
-import { Wallet, Menu, Bell, UserCircle2, LogOut, CreditCard } from "lucide-react";
+import { Wallet, Menu, Bell, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
-import { Badge } from "@/components/ui/badge";
 
 export default function Header() {
   const [location] = useLocation();
-  const { user, userData, logout } = useAuth();
 
   const navItems = [
     { href: "/", label: "Trang chủ", active: location === "/" },
-    { href: "/cards", label: "Quản lý thẻ", active: location === "/cards" },
+    { href: "/payment", label: "Thanh toán", active: location === "/payment" },
     { href: "/history", label: "Lịch sử", active: location === "/history" },
     { href: "/support", label: "Hỗ trợ", active: location === "/support" },
   ];
@@ -50,51 +45,9 @@ export default function Header() {
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5" />
             </Button>
-            
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.photoURL} alt={userData?.name || "User"} />
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {userData?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{userData?.name}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
-                    {userData?.businessName && (
-                      <Badge variant="secondary" className="w-fit">
-                        {userData.businessName}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/cards">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Quản lý thẻ
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/history">
-                    <Bell className="mr-2 h-4 w-4" />
-                    Lịch sử giao dịch
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Đăng xuất
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="ghost" size="icon">
+              <UserCircle2 className="h-5 w-5" />
+            </Button>
 
             {/* Mobile Menu */}
             <Sheet>
