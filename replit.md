@@ -6,6 +6,7 @@ This is a full-stack web application built with React on the frontend and Expres
 
 Preferred communication style: Simple, everyday language.
 Payment integration: Real MoMo Business API for credit card and e-wallet payments (not demo/simulation).
+Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
 
 ## System Architecture
 
@@ -40,6 +41,7 @@ The application uses three main tables:
 
 ### API Endpoints
 - `POST /api/bills/lookup` - Search for bills by customer ID and bill type
+- `POST /api/bills/lookup-by-number` - Search for bills by bill number using BIDV API
 - `POST /api/payments` - Create a new payment record with MoMo integration
 - `POST /api/payments/momo/ipn` - MoMo IPN (Instant Payment Notification) endpoint
 - `GET /api/payments/:transactionId` - Get payment status
@@ -75,6 +77,7 @@ The application uses three main tables:
 - **Database**: In-memory storage with PostgreSQL schema compatibility
 - **Validation**: Zod schemas shared between frontend and backend
 - **Payment Processing**: MoMo Business API integration
+- **Bill Lookup**: BIDV API integration for real bill data
 - **Cryptography**: crypto-js for MoMo signature generation
 - **HTTP Client**: Axios for external API calls
 

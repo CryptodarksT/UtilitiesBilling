@@ -12,12 +12,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
 export default function Home() {
-  const [billData, setBillData] = useState<{ bill: Bill; customer: Customer } | null>(null);
+  const [billData, setBillData] = useState<{ bill: Bill; customer: Customer; source?: string } | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleBillFound = (data: { bill: Bill; customer: Customer }) => {
+  const handleBillFound = (data: { bill: Bill; customer: Customer; source?: string }) => {
     setBillData(data);
     setSelectedPaymentMethod(null);
   };
@@ -106,7 +106,7 @@ export default function Home() {
         {/* Bill Information */}
         {billData && (
           <div className="mb-8">
-            <BillInfo bill={billData.bill} customer={billData.customer} />
+            <BillInfo bill={billData.bill} customer={billData.customer} source={billData.source} />
           </div>
         )}
 

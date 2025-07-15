@@ -61,6 +61,13 @@ export const billLookupSchema = z.object({
   customerId: z.string().min(1, "Vui lòng nhập mã khách hàng"),
 });
 
+export const billNumberLookupSchema = z.object({
+  billNumber: z.string()
+    .min(13, "Số hóa đơn phải có 13 ký tự")
+    .max(13, "Số hóa đơn phải có 13 ký tự")
+    .regex(/^[A-Z]{2}\d{11}$/, "Số hóa đơn không đúng định dạng (VD: PD29007350490)")
+});
+
 export const paymentRequestSchema = z.object({
   billId: z.number(),
   paymentMethod: z.string().min(1, "Vui lòng chọn phương thức thanh toán"),
@@ -73,4 +80,5 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type BillLookup = z.infer<typeof billLookupSchema>;
+export type BillNumberLookup = z.infer<typeof billNumberLookupSchema>;
 export type PaymentRequest = z.infer<typeof paymentRequestSchema>;

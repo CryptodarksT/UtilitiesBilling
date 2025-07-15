@@ -1,13 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { billLookupSchema, paymentRequestSchema } from "@shared/schema";
+import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema } from "@shared/schema";
 import { z } from "zod";
 import { MoMoService } from "./momo-service";
+import { BIDVService } from "./bidv-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Bill lookup endpoint
+  // Bill lookup endpoint (by customer ID)
   app.post("/api/bills/lookup", async (req, res) => {
     try {
       const { billType, provider, customerId } = billLookupSchema.parse(req.body);
@@ -30,6 +31,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.errors[0].message });
       }
       res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+  });
+
+  // Bill lookup endpoint (by bill number - BIDV API)
+  app.post("/api/bills/lookup-by-number", async (req, res) => {
+    try {
+      const { billNumber } = billNumberLookupSchema.parse(req.body);
+      
+      // Initialize BIDV service
+      const bidvService = new BIDVService();
+      
+      // Validate bill number format
+      if (!bidvService.validateBillNumber(billNumber)) {
+        return res.status(400).json({ message: "Số hóa đơn không đúng định dạng" });
+      }
+
+      // Get bill type and provider from bill number
+      const billType = bidvService.getBillTypeFromNumber(billNumber);
+      const provider = bidvService.getProviderFromNumber(billNumber);
+
+      // Call BIDV API to lookup bill
+      const bidvResponse = await bidvService.lookupBill({
+        billNumber,
+        billType,
+        provider
+      });
+
+      // Create or find customer in local storage
+      let customer = await storage.getCustomer(billNumber);
+      if (!customer) {
+        customer = await storage.createCustomer({
+          customerId: billNumber,
+          name: bidvResponse.customerName,
+          address: bidvResponse.customerAddress,
+          phone: bidvResponse.customerPhone,
+          email: bidvResponse.customerEmail
+        });
+      }
+
+      // Create or find bill in local storage
+      let bill = await storage.getBillByCustomerId(billNumber, billType, provider);
+      if (!bill) {
+        bill = await storage.createBill({
+          customerId: billNumber,
+          billType,
+          provider,
+          period: bidvResponse.period || new Date().toISOString().slice(0, 7),
+          oldIndex: bidvResponse.oldReading ? parseInt(bidvResponse.oldReading) : null,
+          newIndex: bidvResponse.newReading ? parseInt(bidvResponse.newReading) : null,
+          consumption: bidvResponse.oldReading && bidvResponse.newReading ? 
+            parseInt(bidvResponse.newReading) - parseInt(bidvResponse.oldReading) : null,
+          amount: bidvResponse.amount,
+          status: bidvResponse.status === 'paid' ? 'paid' : 'pending',
+          dueDate: new Date(bidvResponse.dueDate)
+        });
+      }
+
+      res.json({ 
+        bill: {
+          ...bill,
+          billNumber,
+          description: bidvResponse.description,
+          unit: bidvResponse.unit,
+          unitPrice: bidvResponse.unitPrice,
+          taxes: bidvResponse.taxes,
+          fees: bidvResponse.fees
+        }, 
+        customer,
+        source: 'bidv'
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      
+      // Handle BIDV API specific errors
+      if (error.message.includes('BIDV API')) {
+        return res.status(400).json({ message: error.message });
+      }
+      
+      console.error('BIDV Lookup Error:', error);
+      res.status(500).json({ message: "Lỗi khi tra cứu hóa đơn từ BIDV" });
     }
   });
 
