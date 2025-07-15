@@ -109,25 +109,59 @@ exe = EXE(
     
     # Chạy PyInstaller
     try:
-        subprocess.run([
+        cmd = [
             sys.executable, "-m", "PyInstaller", 
             "--onefile", 
             "--windowed",
             "--name=PayooDesktop",
-            "--icon=assets/icon.ico" if os.path.exists("assets/icon.ico") else "",
+            "--distpath=dist",
+            "--workpath=build",
+            "--specpath=.",
             "--add-data=src;src",
             "--add-data=assets;assets",
             "--hidden-import=customtkinter",
-            "--hidden-import=CTkMessagebox",
+            "--hidden-import=CTkMessagebox", 
             "--hidden-import=requests",
             "--hidden-import=cryptography",
             "--hidden-import=pandas",
             "--hidden-import=openpyxl",
-            "main.py"
-        ], check=True)
-        print("✅ Đã tạo executable thành công")
+            "--hidden-import=matplotlib",
+            "--hidden-import=numpy",
+            "--hidden-import=PIL",
+            "--hidden-import=tkinter",
+            "--hidden-import=tkinter.ttk",
+            "--hidden-import=tkinter.filedialog",
+            "--hidden-import=tkinter.messagebox",
+            "--hidden-import=json",
+            "--hidden-import=threading",
+            "--hidden-import=datetime",
+            "--hidden-import=webbrowser",
+            "--collect-all=customtkinter",
+            "--collect-all=CTkMessagebox",
+            "--noconsole"
+        ]
+        
+        # Thêm icon nếu tồn tại
+        if os.path.exists("assets/icon.ico"):
+            cmd.append("--icon=assets/icon.ico")
+            
+        cmd.append("main.py")
+        
+        print("Đang chạy PyInstaller...")
+        print(f"Command: {' '.join(cmd)}")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print("✅ Đã tạo executable thành công")
+        else:
+            print(f"❌ Lỗi tạo executable:")
+            print(f"STDOUT: {result.stdout}")
+            print(f"STDERR: {result.stderr}")
+            return False
+            
     except subprocess.CalledProcessError as e:
-        print(f"❌ Lỗi tạo executable: {e}")
+        print(f"❌ Lỗi chạy PyInstaller: {e}")
         return False
     
     # Tạo installer (optional)
