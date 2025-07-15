@@ -7,6 +7,9 @@ import Home from "@/pages/home";
 import PaymentHistory from "@/pages/payment-history";
 import PaymentSuccess from "@/pages/payment-success";
 import NotFound from "@/pages/not-found";
+import AdminLogin from "@/pages/admin-login";
+import Support from "@/pages/support";
+import ApiStatus from "@/pages/api-status";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 
@@ -19,6 +22,9 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/history" component={PaymentHistory} />
           <Route path="/payment-success" component={PaymentSuccess} />
+          <Route path="/admin-login" component={AdminLogin} />
+          <Route path="/support" component={Support} />
+          <Route path="/api-status" component={ApiStatus} />
           <Route component={NotFound} />
         </Switch>
       </main>

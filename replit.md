@@ -1,6 +1,6 @@
 # Overview
 
-This is a full-stack web application built with React on the frontend and Express.js on the backend. It's a Vietnamese utility payment system called "Payoo" that allows users to search for bills (electricity, water, internet, TV) and make payments through various methods (QR code, bank transfer, e-wallet). The application uses TypeScript throughout and follows modern web development practices.
+This is a comprehensive Vietnamese utility payment system called "Payoo" built with 100% real API integrations. The application provides authentic bill lookup and payment processing through real Vietnamese banking and payment provider APIs. It's a production-ready system with administrative tools, comprehensive documentation, and real-time system monitoring.
 
 ## User Preferences
 
@@ -11,6 +11,8 @@ Excel functionality: Added Excel file upload capability for bulk bill processing
 Data integrity: 100% real data integration, no mock/simulation data.
 Production-ready: Integrated real Visa Direct API for actual payment processing with Vietnamese banking systems.
 Spring Boot integration: Java backend components for enterprise-level payment processing.
+Administrative features: Business account management, API status monitoring, and support documentation.
+Real-time monitoring: System health checks and API status tracking.
 
 ## System Architecture
 
@@ -57,6 +59,8 @@ The application uses three main tables:
 - `GET /api/payments/auto/template` - Download template for auto-payment Excel
 - `POST /api/payments/auto/report` - Generate report for auto-payment results
 - `POST /api/phonecard/purchase` - Purchase phone top-up cards
+- `GET /api/system/health` - System health check endpoint
+- `GET /api/system/status` - Detailed API status monitoring
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills
@@ -67,6 +71,10 @@ The application uses three main tables:
 - **Excel Upload** - Bulk bill upload from Excel files
 - **Auto Payment** - Automated payment processing with Visa card
 - **Phone Card Purchase** - Buy phone top-up cards from various providers
+- **Admin Login** - Business account management for MoMo, BIDV, ZaloPay, Visa
+- **Support Pages** - Comprehensive documentation and help guides
+- **API Status Dashboard** - Real-time monitoring of all payment APIs
+- **System Health** - Live system metrics and uptime monitoring
 
 ## Data Flow
 

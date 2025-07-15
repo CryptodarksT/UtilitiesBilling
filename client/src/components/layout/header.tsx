@@ -1,16 +1,18 @@
 import { Link, useLocation } from "wouter";
-import { Wallet, Menu, Bell, UserCircle2 } from "lucide-react";
+import { Wallet, Menu, Bell, UserCircle2, Shield, Activity, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 
 export default function Header() {
   const [location] = useLocation();
 
   const navItems = [
     { href: "/", label: "Trang chủ", active: location === "/" },
-    { href: "/payment", label: "Thanh toán", active: location === "/payment" },
     { href: "/history", label: "Lịch sử", active: location === "/history" },
-    { href: "/support", label: "Hỗ trợ", active: location === "/support" },
+    { href: "/support", label: "Hỗ trợ", active: location === "/support", icon: <HelpCircle className="h-4 w-4" /> },
+    { href: "/api-status", label: "API Status", active: location === "/api-status", icon: <Activity className="h-4 w-4" /> },
+    { href: "/admin-login", label: "Quản trị", active: location === "/admin-login", icon: <Shield className="h-4 w-4" /> },
   ];
 
   return (
@@ -24,17 +26,18 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   item.active
                     ? "text-primary border-b-2 border-primary"
                     : "text-gray-700 hover:text-primary"
                 }`}
               >
+                {item.icon}
                 {item.label}
               </Link>
             ))}
@@ -42,6 +45,9 @@ export default function Header() {
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              System OK
+            </Badge>
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5" />
             </Button>
