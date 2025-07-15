@@ -56,8 +56,9 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.photoURL} alt={userData?.name || "User"} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                      {userData?.name?.charAt(0) || user?.email?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -65,16 +66,11 @@ export default function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user?.name}</p>
+                    <p className="font-medium">{userData?.name}</p>
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
-                    {user?.businessName && (
+                    {userData?.businessName && (
                       <Badge variant="secondary" className="w-fit">
-                        {user.businessName}
-                      </Badge>
-                    )}
-                    {!user?.isVerified && (
-                      <Badge variant="destructive" className="w-fit">
-                        Chưa xác minh
+                        {userData.businessName}
                       </Badge>
                     )}
                   </div>

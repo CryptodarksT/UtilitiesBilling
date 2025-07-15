@@ -4,43 +4,65 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { signInWithGoogle } from '@/lib/firebase';
+import { signInWithGoogleRedirect } from '@/lib/firebase-redirect';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogIn, Building2, Key, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LogIn, Building2 } from 'lucide-react';
 
 interface LoginProps {
   onRegister: () => void;
 }
 
 export default function Login({ onRegister }: LoginProps) {
-  const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { login } = useAuth();
+  const { register } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!apiKey.trim()) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập API key",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await login(apiKey.trim());
-      toast({
-        title: "Đăng nhập thành công",
-        description: "Chào mừng bạn quay trở lại!"
-      });
+      // First try popup method
+      const result = await signInWithGoogle();
+      
+      // Check if user exists in our database
+      try {
+        const token = await result.user.getIdToken();
+        const response = await fetch('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          // User doesn't exist, show registration form
+          onRegister();
+        } else {
+          toast({
+            title: "Đăng nhập thành công",
+            description: "Chào mừng bạn quay trở lại!"
+          });
+        }
+      } catch (error) {
+        console.error('Profile check error:', error);
+        // If profile check fails, assume new user
+        onRegister();
+      }
     } catch (error: any) {
+      console.error('Google sign in error:', error);
+      
+      let errorMessage = "Không thể đăng nhập với Google";
+      
+      if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
+        errorMessage = "Domain chưa được phép. Vui lòng liên hệ admin để thêm domain này vào Firebase Console: " + window.location.hostname;
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "Domain này chưa được cấp phép sử dụng Firebase. Vui lòng kiểm tra file FIREBASE_AUTH_FIX.md để biết cách khắc phục.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Trình duyệt đã chặn popup đăng nhập. Vui lòng cho phép popup và thử lại.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Đăng nhập thất bại",
-        description: error.message || "API key không hợp lệ",
+        title: "Lỗi đăng nhập",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -48,8 +70,20 @@ export default function Login({ onRegister }: LoginProps) {
     }
   };
 
-  const handleRegister = () => {
-    onRegister();
+  const handleGoogleSignInRedirect = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogleRedirect();
+      // The redirect will handle the rest
+    } catch (error: any) {
+      console.error('Google redirect error:', error);
+      toast({
+        title: "Lỗi đăng nhập",
+        description: "Không thể chuyển hướng đến Google",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,80 +99,78 @@ export default function Login({ onRegister }: LoginProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Sử dụng API key để đăng nhập. Nếu chưa có tài khoản, vui lòng đăng ký để nhận API key.
-            </AlertDescription>
-          </Alert>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">API Key</Label>
-              <div className="relative">
-                <Key className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder="pk_1234567890abcdef..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="pl-9"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-              ) : (
-                <LogIn className="mr-2 h-4 w-4" />
-              )}
-              Đăng nhập
-            </Button>
-          </form>
-
+          <Button
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            className="w-full"
+            variant="outline"
+          >
+            {isLoading ? (
+              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+            ) : (
+              <LogIn className="mr-2 h-4 w-4" />
+            )}
+            Đăng nhập với Google (Popup)
+          </Button>
+          
+          <Button
+            onClick={handleGoogleSignInRedirect}
+            disabled={isLoading}
+            className="w-full"
+            variant="default"
+          >
+            {isLoading ? (
+              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2" />
+            ) : (
+              <LogIn className="mr-2 h-4 w-4" />
+            )}
+            Đăng nhập với Google (Redirect)
+          </Button>
+          
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Chưa có tài khoản?
+                Hoặc
               </span>
             </div>
           </div>
-
-          <Button 
-            onClick={handleRegister}
-            variant="outline" 
-            className="w-full"
-          >
-            Đăng ký tài khoản mới
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="email@doanhnghiep.com"
+              disabled
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Mật khẩu</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              disabled
+            />
+          </div>
+          
+          <Button className="w-full" disabled>
+            Đăng nhập bằng email (Sắp có)
           </Button>
-
+          
           <div className="text-center text-sm text-muted-foreground">
-            <p>
-              Bằng cách đăng nhập, bạn đồng ý với{' '}
-              <a href="#" className="text-primary hover:underline">
-                Điều khoản dịch vụ
-              </a>{' '}
-              và{' '}
-              <a href="#" className="text-primary hover:underline">
-                Chính sách bảo mật
-              </a>
-            </p>
-            <p className="mt-2">
-              Cần hỗ trợ? Liên hệ{' '}
-              <a href="mailto:support@payoo.vn" className="text-primary hover:underline">
-                support@payoo.vn
-              </a>
-            </p>
+            Bằng cách đăng nhập, bạn đồng ý với{' '}
+            <a href="#" className="text-primary hover:underline">
+              Điều khoản dịch vụ
+            </a>{' '}
+            và{' '}
+            <a href="#" className="text-primary hover:underline">
+              Chính sách bảo mật
+            </a>
           </div>
         </CardContent>
       </Card>

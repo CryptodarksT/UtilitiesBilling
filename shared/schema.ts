@@ -42,15 +42,13 @@ export const payments = pgTable("payments", {
 // User accounts for business customers
 export const userAccounts = pgTable("user_accounts", {
   id: serial("id").primaryKey(),
-  apiKey: text("api_key").notNull().unique(),
+  firebaseUid: text("firebase_uid").notNull().unique(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   businessName: text("business_name"),
   phone: text("phone"),
   isVerified: boolean("is_verified").default(false),
   isActive: boolean("is_active").default(true),
-  keyExpiresAt: timestamp("key_expires_at"),
-  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

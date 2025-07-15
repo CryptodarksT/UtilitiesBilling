@@ -10,10 +10,9 @@ Payment integration: Real MoMo Business API for credit card and e-wallet payment
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
 Excel functionality: Added Excel file upload capability for bulk bill processing.
 Data integrity: 100% real data integration, no mock/simulation data.
-Authentication: API key-based authentication system (replaced Firebase completely).
-Card management: Encrypted card storage with database integration for business customers.
+Authentication: Firebase authentication with Google sign-in for business accounts (implemented and working).
+Card management: Encrypted card storage with Firebase/Google Cloud integration for business customers.
 3DS verification: Full 3D Secure verification for Visa cards via VNPay integration (implemented with popup/redirect flow).
-Deployment: VPS Windows deployment on IP 160.30.44.141 with Administrator account.
 
 ## System Architecture
 
@@ -45,7 +44,7 @@ The application uses six main tables:
 - **customers** - Store customer information (ID, name, address, phone, email)
 - **bills** - Store bill information (customer ID, bill type, provider, amount, status, due date)
 - **payments** - Store payment records (bill ID, amount, payment method, transaction ID, status)
-- **userAccounts** - Business user accounts with API key authentication
+- **userAccounts** - Business user accounts with Firebase authentication
 - **linkedCards** - Encrypted card storage with 3DS verification (cardToken, is3DSVerified, verifiedAt, lastUsed)
 - **customerTokens** - Secure tokens for auto-payment functionality
 
@@ -63,7 +62,7 @@ The application uses six main tables:
 - `GET /api/payments/auto/template` - Download template for auto-payment Excel
 - `POST /api/payments/auto/report` - Generate report for auto-payment results
 - `POST /api/phonecard/purchase` - Purchase phone top-up cards
-- `POST /api/auth/register` - Register new business user with API key authentication
+- `POST /api/auth/register` - Register new business user with Firebase authentication
 - `GET /api/auth/profile` - Get authenticated user profile
 - `POST /api/cards/link` - Link payment card to customer account
 - `GET /api/cards` - Get user's linked payment cards
@@ -130,17 +129,3 @@ The application uses six main tables:
 - TypeScript configuration covers all source directories
 
 The application demonstrates modern full-stack development practices with type safety, proper separation of concerns, and a clean architecture that supports both development and production deployment.
-
-## Recent Changes (2024)
-
-### December 2024 - API Key Authentication Migration
-- **Completed:** Replaced Firebase authentication with API key-based system
-- **Changes:** Updated database schema, removed Firebase dependencies, created AuthService
-- **Impact:** Simplified authentication flow, better suited for business API integration
-- **Files:** `server/auth-service.ts`, `server/auth-middleware.ts`, `shared/schema.ts`
-
-### VPS Windows Deployment Setup
-- **Target:** VPS Windows Server on IP 160.30.44.141
-- **Created:** Complete deployment scripts and documentation
-- **Files:** `deploy.ps1`, `build.bat`, `start.bat`, `DEPLOYMENT_COMPLETE.md`
-- **Features:** PM2 process management, PostgreSQL setup, automated deployment

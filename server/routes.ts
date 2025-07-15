@@ -9,8 +9,7 @@ import { ExcelService } from "./excel-service";
 import { AutoPaymentService } from "./auto-payment-service";
 import { CardService } from "./card-service";
 import { VNPayService } from "./vnpay-service";
-import { AuthService } from "./auth-service";
-import { authenticateToken, requireVerification, requireAdmin, type AuthenticatedRequest } from "./auth-middleware";
+import { authenticateToken, requireVerification, type AuthenticatedRequest } from "./auth-middleware";
 import { db } from "./db";
 import { userAccounts, linkedCards } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -453,39 +452,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // User registration endpoint (create new account with API key)
+  // User registration endpoint
   app.post("/api/auth/register", async (req: AuthenticatedRequest, res) => {
     try {
-      const { email, name, businessName, phone } = req.body;
+      const { firebaseUid, email, name, businessName, phone } = insertUserAccountSchema.parse(req.body);
       
-      // Create new user with API key
-      const newUser = await AuthService.createAccount({
-        email,
-        name,
-        businessName: businessName || null,
-        phone: phone || null,
-      });
+      // Check if user already exists
+      const [existingUser] = await db
+        .select()
+        .from(userAccounts)
+        .where(eq(userAccounts.firebaseUid, firebaseUid));
+
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Create new user
+      const [newUser] = await db
+        .insert(userAccounts)
+        .values({
+          firebaseUid,
+          email,
+          name,
+          businessName,
+          phone,
+        })
+        .returning();
 
       res.json({ 
-        message: "Tài khoản đã được tạo thành công",
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          name: newUser.name,
-          businessName: newUser.businessName,
-          phone: newUser.phone,
-          apiKey: newUser.apiKey,
-          isVerified: newUser.isVerified,
-          keyExpiresAt: newUser.keyExpiresAt,
-          createdAt: newUser.createdAt
-        }
+        message: "User registered successfully",
+        user: newUser 
       });
     } catch (error) {
-      if (error.message.includes('duplicate key')) {
-        return res.status(400).json({ message: "Email đã được sử dụng" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
       }
       console.error('Registration error:', error);
-      res.status(500).json({ message: "Không thể tạo tài khoản" });
+      res.status(500).json({ message: "Registration failed" });
     }
   });
 
@@ -496,99 +499,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Profile error:', error);
       res.status(500).json({ message: "Failed to get profile" });
-    }
-  });
-
-  // API key login endpoint
-  app.post("/api/auth/login", async (req: AuthenticatedRequest, res) => {
-    try {
-      const { apiKey } = req.body;
-      
-      if (!apiKey) {
-        return res.status(400).json({ message: "API key is required" });
-      }
-      
-      const userData = await AuthService.verifyApiKey(apiKey);
-      
-      res.json({
-        message: "Đăng nhập thành công",
-        user: {
-          id: userData.id,
-          email: userData.email,
-          name: userData.name,
-          businessName: userData.businessName,
-          phone: userData.phone,
-          isVerified: userData.isVerified,
-          keyExpiresAt: userData.keyExpiresAt,
-          lastLoginAt: userData.lastLoginAt
-        }
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(401).json({ message: error.message || "Invalid API key" });
-    }
-  });
-
-  // Admin endpoint to list all accounts
-  app.get("/api/admin/accounts", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-    try {
-      const accounts = await AuthService.listAccounts();
-      res.json({ accounts });
-    } catch (error) {
-      console.error('List accounts error:', error);
-      res.status(500).json({ message: "Failed to list accounts" });
-    }
-  });
-
-  // Admin endpoint to verify account
-  app.post("/api/admin/accounts/:id/verify", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const verifiedAccount = await AuthService.verifyAccount(userId);
-      res.json({ 
-        message: "Account verified successfully",
-        account: verifiedAccount
-      });
-    } catch (error) {
-      console.error('Verify account error:', error);
-      res.status(500).json({ message: "Failed to verify account" });
-    }
-  });
-
-  // Admin endpoint to toggle account status
-  app.post("/api/admin/accounts/:id/toggle", authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const { isActive } = req.body;
-      
-      const updatedAccount = await AuthService.toggleAccountStatus(userId, isActive);
-      res.json({ 
-        message: `Account ${isActive ? 'activated' : 'deactivated'} successfully`,
-        account: updatedAccount
-      });
-    } catch (error) {
-      console.error('Toggle account error:', error);
-      res.status(500).json({ message: "Failed to toggle account status" });
-    }
-  });
-
-  // Regenerate API key
-  app.post("/api/auth/regenerate-key", authenticateToken, async (req: AuthenticatedRequest, res) => {
-    try {
-      const updatedUser = await AuthService.regenerateApiKey(req.user!.id);
-      res.json({
-        message: "API key regenerated successfully",
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          name: updatedUser.name,
-          apiKey: updatedUser.apiKey,
-          keyExpiresAt: updatedUser.keyExpiresAt
-        }
-      });
-    } catch (error) {
-      console.error('Regenerate key error:', error);
-      res.status(500).json({ message: "Failed to regenerate API key" });
     }
   });
 
