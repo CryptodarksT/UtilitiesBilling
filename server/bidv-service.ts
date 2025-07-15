@@ -75,6 +75,7 @@ export class BIDVService {
         rejectUnauthorized: true,
         secureProtocol: 'TLSv1_2_method',
         ciphers: 'HIGH:!aNULL:!MD5',
+        ciphers: 'HIGH:!aNULL:!MD5',
         timeout: 30000
       });
 
