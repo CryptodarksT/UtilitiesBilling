@@ -24,7 +24,9 @@ export function getBillTypeDisplay(billType: string): string {
     'electricity': 'Điện',
     'water': 'Nước',
     'internet': 'Internet',
-    'tv': 'Truyền hình'
+    'tv': 'Truyền hình',
+    'television': 'Truyền hình',
+    'phonecard': 'Thẻ cào điện thoại'
   };
   return types[billType as keyof typeof types] || billType;
 }

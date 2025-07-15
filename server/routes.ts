@@ -331,7 +331,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         electricity: ['EVN TP.HCM', 'EVN Hà Nội', 'EVN Miền Trung', 'EVN Miền Nam'],
         water: ['SAWACO', 'HAWACO', 'DAWACO', 'CAWACO'],
         internet: ['FPT Telecom', 'Viettel', 'VNPT', 'CMC'],
-        tv: ['VTVcab', 'SCTV', 'AVG', 'K+']
+        tv: ['VTVcab', 'SCTV', 'AVG', 'K+'],
+        phonecard: ['Viettel', 'Vinaphone', 'Mobifone', 'Vietnamobile', 'Gmobile']
       };
 
       const providerList = providers[billType as keyof typeof providers] || [];
@@ -397,6 +398,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Generate report error:', error);
       res.status(500).json({ message: "Lỗi tạo báo cáo" });
+    }
+  });
+
+  // Phone card purchase endpoint
+  app.post("/api/phonecard/purchase", async (req, res) => {
+    try {
+      const { provider, denomination, quantity } = req.body;
+      
+      // Generate phone card serial numbers
+      const cards = [];
+      for (let i = 0; i < quantity; i++) {
+        const serial = `${provider.toUpperCase()}${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        const pin = Math.floor(Math.random() * 900000000000) + 100000000000; // 12 digit PIN
+        cards.push({
+          serial,
+          pin: pin.toString(),
+          denomination,
+          provider
+        });
+      }
+      
+      // Create a bill record for the purchase
+      const totalAmount = parseInt(denomination) * quantity;
+      const bill = await storage.createBill({
+        customerId: "PHONECARD_CUSTOMER",
+        billType: "phonecard",
+        provider,
+        amount: totalAmount.toString(),
+        dueDate: new Date().toISOString(),
+        status: "pending",
+        period: new Date().toISOString().slice(0, 7),
+      });
+      
+      res.json({ 
+        bill,
+        cards,
+        message: `Đã tạo ${quantity} thẻ ${denomination}đ của ${provider}`
+      });
+    } catch (error) {
+      console.error('Phone card purchase error:', error);
+      res.status(500).json({ message: "Lỗi khi mua thẻ cào" });
     }
   });
 

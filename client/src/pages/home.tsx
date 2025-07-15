@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bolt, Droplets, Wifi, Tv, DollarSign, Upload } from "lucide-react";
+import { Bolt, Droplets, Wifi, Tv, DollarSign, Upload, Smartphone } from "lucide-react";
 import BillLookup from "@/components/bill-lookup";
 import BillInfo from "@/components/bill-info";
 import PaymentMethods from "@/components/payment-methods";
@@ -11,6 +11,7 @@ import PaymentModal from "@/components/payment-modal";
 import StatsCards from "@/components/stats-cards";
 import ExcelUpload from "@/components/excel-upload";
 import AutoPayment from "@/components/auto-payment";
+import PhonecardPurchase from "@/components/phonecard-purchase";
 import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
@@ -57,6 +58,7 @@ export default function Home() {
     { id: "water", label: "Nước", icon: Droplets, color: "text-blue-500" },
     { id: "internet", label: "Internet", icon: Wifi, color: "text-purple-500" },
     { id: "tv", label: "Truyền hình", icon: Tv, color: "text-green-500" },
+    { id: "phonecard", label: "Thẻ cào", icon: Smartphone, color: "text-pink-500" },
   ];
 
   return (
@@ -104,10 +106,11 @@ export default function Home() {
         {/* Main Content Tabs */}
         <div className="mb-8">
           <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
               <TabsTrigger value="excel">Upload Excel</TabsTrigger>
               <TabsTrigger value="auto">Thanh toán tự động</TabsTrigger>
+              <TabsTrigger value="phonecard">Mua thẻ cào</TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="mt-6">
@@ -120,6 +123,10 @@ export default function Home() {
             
             <TabsContent value="auto" className="mt-6">
               <AutoPayment />
+            </TabsContent>
+            
+            <TabsContent value="phonecard" className="mt-6">
+              <PhonecardPurchase />
             </TabsContent>
           </Tabs>
         </div>

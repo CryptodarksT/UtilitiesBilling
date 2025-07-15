@@ -48,9 +48,13 @@ The application uses three main tables:
 - `POST /api/payments/momo/ipn` - MoMo IPN (Instant Payment Notification) endpoint
 - `GET /api/payments/:transactionId` - Get payment status
 - `GET /api/payments/history/:customerId` - Get payment history
-- `GET /api/providers/:billType` - Get providers by bill type
+- `GET /api/providers/:billType` - Get providers by bill type (electricity, water, internet, tv, phonecard)
 - `POST /api/excel/upload` - Upload Excel file for bulk bill processing
 - `GET /api/excel/template` - Download Excel template for bill data
+- `POST /api/payments/auto` - Process automatic payments from Excel file
+- `GET /api/payments/auto/template` - Download template for auto-payment Excel
+- `POST /api/payments/auto/report` - Generate report for auto-payment results
+- `POST /api/phonecard/purchase` - Purchase phone top-up cards
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills
@@ -58,6 +62,9 @@ The application uses three main tables:
 - **Payment Methods** - Selection interface for payment options
 - **Payment Modal** - Payment processing interface
 - **Stats Cards** - Dashboard showing payment statistics
+- **Excel Upload** - Bulk bill upload from Excel files
+- **Auto Payment** - Automated payment processing with Visa card
+- **Phone Card Purchase** - Buy phone top-up cards from various providers
 
 ## Data Flow
 

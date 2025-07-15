@@ -115,7 +115,8 @@ export class BIDVService {
       electricity: [150000, 200000, 350000, 450000, 600000],
       water: [80000, 120000, 180000, 250000, 300000],
       internet: [199000, 299000, 399000, 499000, 599000],
-      television: [150000, 200000, 250000, 300000, 400000]
+      television: [150000, 200000, 250000, 300000, 400000],
+      phonecard: [10000, 20000, 50000, 100000, 200000, 500000]
     };
 
     const customerNames = [
@@ -188,6 +189,8 @@ export class BIDVService {
         return 'internet';
       case 'TV':
         return 'television';
+      case 'TC':
+        return 'phonecard';
       default:
         return 'unknown';
     }
@@ -207,6 +210,11 @@ export class BIDVService {
         return 'fpt-telecom';
       case 'TV':
         return 'vtvcab';
+      case 'TC':
+        const cardType = parseInt(billNumber.substring(4, 5));
+        if (cardType <= 3) return 'viettel';
+        if (cardType <= 6) return 'vinaphone';
+        return 'mobifone';
       default:
         return 'unknown';
     }

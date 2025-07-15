@@ -140,6 +140,7 @@ export default function BillLookup({ onBillFound }: BillLookupProps) {
                             <SelectItem value="water">Nước (SAWACO)</SelectItem>
                             <SelectItem value="internet">Internet (FPT, Viettel)</SelectItem>
                             <SelectItem value="tv">Truyền hình (VTVcab)</SelectItem>
+                            <SelectItem value="phonecard">Thẻ cào điện thoại</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
