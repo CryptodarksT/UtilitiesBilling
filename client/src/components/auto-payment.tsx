@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, Upload, CreditCard, CheckCircle, XCircle, AlertCircle, FileSpreadsheet } from "lucide-react";
@@ -28,13 +29,39 @@ interface AutoPaymentSummary {
   totalAmount: number;
 }
 
+interface VisaCard {
+  id: string;
+  cardNumber: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  holderName: string;
+  nickname: string;
+  isDefault: boolean;
+}
+
 export default function AutoPayment() {
   const [file, setFile] = useState<File | null>(null);
-  const [visaCardToken, setVisaCardToken] = useState("");
+  const [selectedCard, setSelectedCard] = useState<string>("");
+  const [visaCards, setVisaCards] = useState<VisaCard[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<AutoPaymentResult[]>([]);
   const [summary, setSummary] = useState<AutoPaymentSummary | null>(null);
   const { toast } = useToast();
+
+  // Load visa cards from localStorage
+  useEffect(() => {
+    const storedCards = localStorage.getItem('visaCards');
+    if (storedCards) {
+      const cards = JSON.parse(storedCards);
+      setVisaCards(cards);
+      // Auto-select default card if available
+      const defaultCard = cards.find((card: VisaCard) => card.isDefault);
+      if (defaultCard) {
+        setSelectedCard(defaultCard.id);
+      }
+    }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -93,11 +120,24 @@ export default function AutoPayment() {
       return;
     }
 
+    if (!selectedCard) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng chọn thẻ Visa để thanh toán",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     const formData = new FormData();
     formData.append('file', file);
-    if (visaCardToken) {
-      formData.append('visaCardToken', visaCardToken);
+    
+    // Find selected card and generate token
+    const card = visaCards.find(c => c.id === selectedCard);
+    if (card) {
+      const cardToken = `${card.cardNumber.slice(-4)}_${card.expiryMonth}${card.expiryYear}_${Date.now()}`;
+      formData.append('visaCardToken', cardToken);
     }
 
     try {
@@ -218,24 +258,39 @@ export default function AutoPayment() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="visa">Mã thẻ Visa (Tùy chọn)</Label>
-              <Input
-                id="visa"
-                type="password"
-                placeholder="•••• •••• •••• ••••"
-                value={visaCardToken}
-                onChange={(e) => setVisaCardToken(e.target.value)}
-                disabled={isProcessing}
-              />
-              <p className="text-xs text-muted-foreground">
-                Để trống nếu sử dụng thẻ mặc định
-              </p>
+              <Label htmlFor="visa">Thẻ Visa để thanh toán</Label>
+              <Select value={selectedCard} onValueChange={setSelectedCard} disabled={isProcessing}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn thẻ Visa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {visaCards.map((card) => (
+                    <SelectItem key={card.id} value={card.id}>
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        <span>{card.nickname}</span>
+                        <span className="text-muted-foreground text-xs">
+                          ****{card.cardNumber.slice(-4)}
+                        </span>
+                        {card.isDefault && (
+                          <Badge variant="secondary" className="text-xs">Mặc định</Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {visaCards.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Chưa có thẻ Visa nào. Vui lòng thêm thẻ trong tab "Quản lý thẻ Visa"
+                </p>
+              )}
             </div>
           </div>
 
           <Button
             onClick={handleProcessPayment}
-            disabled={!file || isProcessing}
+            disabled={!file || isProcessing || !selectedCard}
             className="w-full"
           >
             {isProcessing ? (

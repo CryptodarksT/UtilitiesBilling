@@ -12,6 +12,7 @@ import StatsCards from "@/components/stats-cards";
 import ExcelUpload from "@/components/excel-upload";
 import AutoPayment from "@/components/auto-payment";
 import PhonecardPurchase from "@/components/phonecard-purchase";
+import VisaCardManager from "@/components/visa-card-manager";
 import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
@@ -106,11 +107,12 @@ export default function Home() {
         {/* Main Content Tabs */}
         <div className="mb-8">
           <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
               <TabsTrigger value="excel">Upload Excel</TabsTrigger>
               <TabsTrigger value="auto">Thanh toán tự động</TabsTrigger>
               <TabsTrigger value="phonecard">Mua thẻ cào</TabsTrigger>
+              <TabsTrigger value="visa">Quản lý thẻ Visa</TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="mt-6">
@@ -127,6 +129,10 @@ export default function Home() {
             
             <TabsContent value="phonecard" className="mt-6">
               <PhonecardPurchase />
+            </TabsContent>
+            
+            <TabsContent value="visa" className="mt-6">
+              <VisaCardManager />
             </TabsContent>
           </Tabs>
         </div>
