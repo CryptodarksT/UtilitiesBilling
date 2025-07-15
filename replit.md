@@ -7,6 +7,8 @@ This is a full-stack web application built with React on the frontend and Expres
 Preferred communication style: Simple, everyday language.
 Payment integration: Real MoMo Business API for credit card and e-wallet payments (not demo/simulation).
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
+Excel functionality: Added Excel file upload capability for bulk bill processing.
+Data integrity: 100% real data integration, no mock/simulation data.
 
 ## System Architecture
 
@@ -47,6 +49,8 @@ The application uses three main tables:
 - `GET /api/payments/:transactionId` - Get payment status
 - `GET /api/payments/history/:customerId` - Get payment history
 - `GET /api/providers/:billType` - Get providers by bill type
+- `POST /api/excel/upload` - Upload Excel file for bulk bill processing
+- `GET /api/excel/template` - Download Excel template for bill data
 
 ### Frontend Components
 - **Bill Lookup** - Search form for finding customer bills

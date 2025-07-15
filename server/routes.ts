@@ -5,8 +5,63 @@ import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema } from "
 import { z } from "zod";
 import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
+import { ExcelService } from "./excel-service";
+import multer from "multer";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Configure multer for file uploads
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedExts = ['.xlsx', '.xls'];
+      const fileExt = path.extname(file.originalname).toLowerCase();
+      
+      if (allowedExts.includes(fileExt)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Chỉ hỗ trợ file Excel (.xlsx, .xls)'));
+      }
+    }
+  });
+  
+  // Excel upload endpoint
+  app.post("/api/excel/upload", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Không có file được upload" });
+      }
+      
+      const excelService = new ExcelService();
+      const result = await excelService.processExcelFile(req.file.buffer);
+      
+      res.json({
+        message: `Đã xử lý ${result.processed} hóa đơn`,
+        processed: result.processed,
+        errors: result.errors
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Download Excel template
+  app.get("/api/excel/template", (req, res) => {
+    try {
+      const excelService = new ExcelService();
+      const templateBuffer = excelService.generateExcelTemplate();
+      
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="template-hoa-don.xlsx"');
+      res.send(templateBuffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   
   // Bill lookup endpoint (by customer ID)
   app.post("/api/bills/lookup", async (req, res) => {

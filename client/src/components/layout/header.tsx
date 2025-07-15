@@ -8,9 +8,9 @@ export default function Header() {
 
   const navItems = [
     { href: "/", label: "Trang chủ", active: location === "/" },
-    { href: "/", label: "Thanh toán", active: location === "/" },
+    { href: "/payment", label: "Thanh toán", active: location === "/payment" },
     { href: "/history", label: "Lịch sử", active: location === "/history" },
-    { href: "#", label: "Hỗ trợ", active: false },
+    { href: "/support", label: "Hỗ trợ", active: location === "/support" },
   ];
 
   return (
@@ -27,7 +27,7 @@ export default function Header() {
           <nav className="hidden md:flex space-x-8">
             {navItems.map((item) => (
               <Link
-                key={item.href}
+                key={item.label}
                 href={item.href}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   item.active
@@ -60,7 +60,7 @@ export default function Header() {
                 <nav className="flex flex-col space-y-4 mt-6">
                   {navItems.map((item) => (
                     <Link
-                      key={item.href}
+                      key={item.label}
                       href={item.href}
                       className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                         item.active

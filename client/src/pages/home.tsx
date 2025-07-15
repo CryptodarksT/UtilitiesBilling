@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bolt, Droplets, Wifi, Tv, DollarSign } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bolt, Droplets, Wifi, Tv, DollarSign, Upload } from "lucide-react";
 import BillLookup from "@/components/bill-lookup";
 import BillInfo from "@/components/bill-info";
 import PaymentMethods from "@/components/payment-methods";
 import PaymentModal from "@/components/payment-modal";
 import StatsCards from "@/components/stats-cards";
+import ExcelUpload from "@/components/excel-upload";
 import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
@@ -98,9 +100,22 @@ export default function Home() {
           })}
         </div>
 
-        {/* Bill Lookup */}
+        {/* Main Content Tabs */}
         <div className="mb-8">
-          <BillLookup onBillFound={handleBillFound} />
+          <Tabs defaultValue="search" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
+              <TabsTrigger value="excel">Upload Excel</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="search" className="mt-6">
+              <BillLookup onBillFound={handleBillFound} />
+            </TabsContent>
+            
+            <TabsContent value="excel" className="mt-6">
+              <ExcelUpload />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Bill Information */}
