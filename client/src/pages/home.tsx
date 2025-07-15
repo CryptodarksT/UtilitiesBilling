@@ -9,7 +9,7 @@ import BillInfo from "@/components/bill-info";
 import PaymentMethods from "@/components/payment-methods";
 import PaymentModal from "@/components/payment-modal";
 import StatsCards from "@/components/stats-cards";
-import ExcelUpload from "@/components/excel-upload";
+import TxtUpload from "@/components/txt-upload";
 import AutoPayment from "@/components/auto-payment";
 import PhonecardPurchase from "@/components/phonecard-purchase";
 import VisaCardManager from "@/components/visa-card-manager";
@@ -109,7 +109,7 @@ export default function Home() {
           <Tabs defaultValue="search" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
-              <TabsTrigger value="excel">Upload Excel</TabsTrigger>
+              <TabsTrigger value="txt">Upload TXT</TabsTrigger>
               <TabsTrigger value="auto">Thanh toán tự động</TabsTrigger>
               <TabsTrigger value="phonecard">Mua thẻ cào</TabsTrigger>
               <TabsTrigger value="visa">Quản lý thẻ Visa</TabsTrigger>
@@ -119,8 +119,8 @@ export default function Home() {
               <BillLookup onBillFound={handleBillFound} />
             </TabsContent>
             
-            <TabsContent value="excel" className="mt-6">
-              <ExcelUpload />
+            <TabsContent value="txt" className="mt-6">
+              <TxtUpload />
             </TabsContent>
             
             <TabsContent value="auto" className="mt-6">

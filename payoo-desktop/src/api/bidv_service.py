@@ -70,11 +70,11 @@ class BIDVService:
             if response.status_code == 200:
                 return self.process_response(response.json())
             else:
-                return self.create_mock_response(bill_number)
+                return self.create_error_response(bill_number, f"HTTP {response.status_code}")
                 
         except Exception as e:
             print(f"Lỗi BIDV API: {e}")
-            return self.create_mock_response(bill_number)
+            return self.create_error_response(bill_number, str(e))
     
     def process_response(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
         """Xử lý response từ BIDV API"""
@@ -84,66 +84,13 @@ class BIDVService:
             "source": "bidv_api"
         }
     
-    def create_mock_response(self, bill_number: str) -> Dict[str, Any]:
-        """Tạo response giả lập khi API không khả dụng"""
-        import random
-        
-        # Danh sách khách hàng mẫu từ Việt Nam
-        customers = [
-            {
-                "name": "Nguyễn Văn An",
-                "address": "123 Nguyễn Huệ, Q1, TP.HCM",
-                "phone": "0901234567",
-                "email": "nguyenvanan@gmail.com"
-            },
-            {
-                "name": "Trần Thị Bình",
-                "address": "456 Trần Hưng Đạo, Q5, TP.HCM", 
-                "phone": "0907142995",
-                "email": "tranthibinh@gmail.com"
-            },
-            {
-                "name": "Lê Minh Cường",
-                "address": "789 Lê Lợi, Q3, TP.HCM",
-                "phone": "0912345678",
-                "email": "leminhcuong@gmail.com"
-            }
-        ]
-        
-        customer = random.choice(customers)
-        bill_id = f"BIDV_{int(time.time())}"
-        
+    def create_error_response(self, bill_number: str, error_message: str) -> Dict[str, Any]:
+        """Tạo response lỗi khi API không khả dụng - không có dữ liệu giả"""
         return {
-            "success": True,
-            "bill": {
-                "id": bill_id,
-                "billNumber": bill_number,
-                "customerId": bill_number,
-                "customerName": customer["name"],
-                "address": customer["address"],
-                "phone": customer["phone"],
-                "email": customer["email"],
-                "billType": "electric",
-                "provider": "EVN_HCMC",
-                "amount": random.randint(200000, 800000),
-                "dueDate": "2025-08-15",
-                "status": "pending",
-                "period": "2025-07",
-                "description": "Hóa đơn tiền điện tháng 7/2025",
-                "oldIndex": random.randint(100, 500),
-                "newIndex": random.randint(500, 800),
-                "consumption": random.randint(50, 200),
-                "taxes": random.randint(10000, 50000),
-                "fees": random.randint(5000, 15000)
-            },
-            "customer": {
-                "id": bill_number,
-                "name": customer["name"],
-                "address": customer["address"],
-                "phone": customer["phone"],
-                "email": customer["email"]
-            },
-            "source": "bidv_fallback"
+            "success": False,
+            "message": f"Không thể tra cứu hóa đơn {bill_number}: {error_message}",
+            "billNumber": bill_number,
+            "error": "BIDV API không khả dụng - vui lòng cấu hình API credentials hoặc thử lại sau"
         }
     
     def get_providers(self) -> Dict[str, Any]:

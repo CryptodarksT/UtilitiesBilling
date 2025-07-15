@@ -7,8 +7,8 @@ This is a comprehensive Vietnamese utility payment system called "Payoo" built w
 Preferred communication style: Simple, everyday language.
 Payment integration: Real MoMo Business API for credit card and e-wallet payments (not demo/simulation).
 Bill lookup: Real BIDV API integration for bill lookup by bill number (format: PD29007350490).
-Excel functionality: Added Excel file upload capability for bulk bill processing.
-Data integrity: 100% real data integration, no mock/simulation data.
+File input format: Changed from Excel to TXT format for data import (customerId|customerName|customerAddress|billType|provider|amount|dueDate).
+Data integrity: 100% real data integration, no mock/simulation data - completely removed all fallback data.
 Production-ready: Integrated real Visa Direct API for actual payment processing with Vietnamese banking systems.
 Spring Boot integration: Java backend components for enterprise-level payment processing.
 Administrative features: Business account management, API status monitoring, and support documentation.
@@ -55,8 +55,8 @@ The application uses three main tables:
 - `GET /api/payments/:transactionId` - Get payment status
 - `GET /api/payments/history/:customerId` - Get payment history
 - `GET /api/providers/:billType` - Get providers by bill type (electricity, water, internet, tv, phonecard)
-- `POST /api/excel/upload` - Upload Excel file for bulk bill processing
-- `GET /api/excel/template` - Download Excel template for bill data
+- `POST /api/txt/upload` - Upload TXT file for bulk bill processing
+- `GET /api/txt/template` - Download TXT template for bill data
 - `POST /api/payments/auto` - Process automatic payments from Excel file
 - `GET /api/payments/auto/template` - Download template for auto-payment Excel
 - `POST /api/payments/auto/report` - Generate report for auto-payment results
@@ -70,7 +70,7 @@ The application uses three main tables:
 - **Payment Methods** - Selection interface for payment options
 - **Payment Modal** - Payment processing interface
 - **Stats Cards** - Dashboard showing payment statistics
-- **Excel Upload** - Bulk bill upload from Excel files
+- **TXT Upload** - Bulk bill upload from TXT files
 - **Auto Payment** - Automated payment processing with Visa card
 - **Phone Card Purchase** - Buy phone top-up cards from various providers
 - **Admin Login** - Business account management for MoMo, BIDV, ZaloPay, Visa

@@ -5,7 +5,7 @@ import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema } from "
 import { z } from "zod";
 import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
-import { ExcelService } from "./excel-service";
+import { TxtService } from "./txt-service";
 import { AutoPaymentService } from "./auto-payment-service";
 import { visaPaymentService } from "./visa-payment-service";
 import { realBillService } from "./real-bill-service";
@@ -22,26 +22,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fileSize: 10 * 1024 * 1024, // 10MB limit
     },
     fileFilter: (req, file, cb) => {
-      const allowedExts = ['.xlsx', '.xls'];
+      const allowedExts = ['.txt', '.csv'];
       const fileExt = path.extname(file.originalname).toLowerCase();
       
       if (allowedExts.includes(fileExt)) {
         cb(null, true);
       } else {
-        cb(new Error('Chỉ hỗ trợ file Excel (.xlsx, .xls)'));
+        cb(new Error('Chỉ hỗ trợ file text (.txt, .csv)'));
       }
     }
   });
   
-  // Excel upload endpoint
-  app.post("/api/excel/upload", upload.single('file'), async (req, res) => {
+  // TXT upload endpoint
+  app.post("/api/txt/upload", upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Không có file được upload" });
       }
       
-      const excelService = new ExcelService();
-      const result = await excelService.processExcelFile(req.file.buffer);
+      const txtService = new TxtService();
+      const result = await txtService.processTxtFile(req.file.buffer);
       
       res.json({
         message: `Đã xử lý ${result.processed} hóa đơn`,
@@ -53,15 +53,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Download Excel template
-  app.get("/api/excel/template", (req, res) => {
+  // Download TXT template
+  app.get("/api/txt/template", (req, res) => {
     try {
-      const excelService = new ExcelService();
-      const templateBuffer = excelService.generateExcelTemplate();
+      const txtService = new TxtService();
+      const templateContent = txtService.generateTxtTemplate();
       
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="template-hoa-don.xlsx"');
-      res.send(templateBuffer);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename=template.txt');
+      res.send(templateContent);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
