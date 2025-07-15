@@ -1,14 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { auth } from './firebase-config';
-import { db } from './db';
-import { userAccounts } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { AuthService } from './auth-service';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
-    uid: string;
+    id: number;
     email: string;
     name: string;
+    apiKey: string;
     userData: any;
   };
 }
@@ -20,40 +18,27 @@ export const authenticateToken = async (
 ) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    const apiKey = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-      return res.status(401).json({ message: 'Access token required' });
+    if (!apiKey) {
+      return res.status(401).json({ message: 'API key required' });
     }
 
-    // Verify Firebase token
-    const decodedToken = await auth.verifyIdToken(token);
-    
-    // Get user data from database
-    const [userData] = await db
-      .select()
-      .from(userAccounts)
-      .where(eq(userAccounts.firebaseUid, decodedToken.uid));
-
-    if (!userData) {
-      return res.status(401).json({ message: 'User not found' });
-    }
-
-    if (!userData.isActive) {
-      return res.status(401).json({ message: 'Account is disabled' });
-    }
+    // Verify API key
+    const userData = await AuthService.verifyApiKey(apiKey);
 
     req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email || userData.email,
-      name: decodedToken.name || userData.name,
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      apiKey: userData.apiKey,
       userData
     };
 
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(401).json({ message: 'Invalid token' });
+    res.status(401).json({ message: error.message || 'Invalid API key' });
   }
 };
 
@@ -65,6 +50,22 @@ export const requireVerification = (
   if (!req.user?.userData?.isVerified) {
     return res.status(403).json({ 
       message: 'Account verification required for this action' 
+    });
+  }
+  next();
+};
+
+export const requireAdmin = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  // Kiểm tra quyền admin dựa trên email hoặc role
+  const isAdmin = req.user?.email === 'admin@payoo.vn' || req.user?.userData?.isAdmin;
+  
+  if (!isAdmin) {
+    return res.status(403).json({ 
+      message: 'Admin access required' 
     });
   }
   next();

@@ -1,17 +1,26 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { handleRedirectResult } from '@/lib/firebase-redirect';
 import { apiRequest } from '@/lib/queryClient';
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  businessName?: string;
+  phone?: string;
+  isVerified: boolean;
+  keyExpiresAt: string;
+  lastLoginAt: string;
+}
 
 interface AuthContextType {
   user: User | null;
   userData: any;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (userData: any) => Promise<void>;
-  getAuthToken: () => Promise<string>;
+  login: (apiKey: string) => Promise<void>;
+  logout: () => void;
+  register: (userData: any) => Promise<{ apiKey: string }>;
+  getAuthToken: () => string | null;
+  regenerateApiKey: () => Promise<{ apiKey: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,76 +43,68 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for redirect result first
-    const checkRedirect = async () => {
-      try {
-        const result = await handleRedirectResult();
-        if (result) {
-          console.log('Redirect authentication successful');
-        }
-      } catch (error) {
-        console.error('Redirect result error:', error);
-      }
-    };
-
-    checkRedirect();
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
-      if (user) {
+    // Check for stored API key on startup
+    const checkStoredAuth = async () => {
+      const storedApiKey = localStorage.getItem('payoo_api_key');
+      if (storedApiKey) {
         try {
-          // Get user data from our backend
-          const token = await user.getIdToken();
           const response = await apiRequest('GET', '/api/auth/profile', null, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${storedApiKey}` }
           });
           
           if (response.ok) {
             const data = await response.json();
+            setUser(data.user.userData);
             setUserData(data.user);
+          } else {
+            localStorage.removeItem('payoo_api_key');
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('Error checking stored auth:', error);
+          localStorage.removeItem('payoo_api_key');
         }
-      } else {
-        setUserData(null);
       }
-      
       setLoading(false);
-    });
+    };
 
-    return unsubscribe;
+    checkStoredAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // This will be implemented with Firebase auth
-    throw new Error('Login not implemented yet');
-  };
-
-  const logout = async () => {
-    await signOut(auth);
-  };
-
-  const register = async (registrationData: any) => {
-    if (!user) throw new Error('No authenticated user');
-    
+  const login = async (apiKey: string) => {
     try {
-      const token = await user.getIdToken();
-      const response = await apiRequest('POST', '/api/auth/register', {
-        firebaseUid: user.uid,
-        email: user.email,
-        name: user.displayName || '',
-        ...registrationData
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiRequest('POST', '/api/auth/login', { apiKey });
       
       if (response.ok) {
         const data = await response.json();
+        setUser(data.user);
         setUserData(data.user);
+        localStorage.setItem('payoo_api_key', apiKey);
       } else {
-        throw new Error('Registration failed');
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    setUserData(null);
+    localStorage.removeItem('payoo_api_key');
+  };
+
+  const register = async (registrationData: any) => {
+    try {
+      const response = await apiRequest('POST', '/api/auth/register', registrationData);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return { apiKey: data.user.apiKey };
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -111,9 +112,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const getAuthToken = async (): Promise<string> => {
-    if (!user) throw new Error('No authenticated user');
-    return await user.getIdToken();
+  const getAuthToken = (): string | null => {
+    return localStorage.getItem('payoo_api_key');
+  };
+
+  const regenerateApiKey = async () => {
+    try {
+      const currentApiKey = localStorage.getItem('payoo_api_key');
+      if (!currentApiKey) throw new Error('No API key found');
+
+      const response = await apiRequest('POST', '/api/auth/regenerate-key', {}, {
+        headers: { Authorization: `Bearer ${currentApiKey}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('payoo_api_key', data.user.apiKey);
+        return { apiKey: data.user.apiKey };
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to regenerate API key');
+      }
+    } catch (error) {
+      console.error('Regenerate API key error:', error);
+      throw error;
+    }
   };
 
   const value = {
@@ -123,7 +146,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     logout,
     register,
-    getAuthToken
+    getAuthToken,
+    regenerateApiKey
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
