@@ -1,0 +1,12 @@
+tkinter
+requests
+cryptography
+Pillow
+openpyxl
+pandas
+python-dotenv
+pyinstaller
+customtkinter
+CTkMessagebox
+matplotlib
+numpy

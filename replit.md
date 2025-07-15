@@ -13,6 +13,8 @@ Production-ready: Integrated real Visa Direct API for actual payment processing 
 Spring Boot integration: Java backend components for enterprise-level payment processing.
 Administrative features: Business account management, API status monitoring, and support documentation.
 Real-time monitoring: System health checks and API status tracking.
+Desktop application: Created complete Python desktop GUI application with CustomTkinter framework.
+Executable packaging: Built system to create standalone .exe files with PyInstaller.
 
 ## System Architecture
 
@@ -124,3 +126,31 @@ The application uses three main tables:
 - TypeScript configuration covers all source directories
 
 The application demonstrates modern full-stack development practices with type safety, proper separation of concerns, and a clean architecture that supports both development and production deployment.
+
+## Desktop Application
+
+### Python Desktop Version
+A complete desktop application built with Python and CustomTkinter framework:
+- **Framework**: CustomTkinter for modern GUI
+- **Architecture**: Modular design with separate API, GUI, and utility modules
+- **Features**: All web application features replicated in desktop form
+- **Packaging**: PyInstaller for standalone .exe creation
+- **Structure**: 19 Python files across 27 total files
+
+### Desktop Components
+- **Main Application**: `main.py` - Application entry point and core logic
+- **API Services**: MoMo, BIDV, ZaloPay, Visa integration services
+- **GUI Frames**: Bill lookup, payment processing, history, admin, settings, status monitoring
+- **Utilities**: Configuration management, Excel processing, encryption
+- **Build System**: Automated build script with PyInstaller
+- **Documentation**: Complete guides for setup, building, and deployment
+
+### Desktop Features
+- 🔍 **Bill Lookup**: Real-time bill search with BIDV API integration
+- 💳 **Payment Processing**: Multi-provider payment with MoMo, BIDV, ZaloPay, Visa
+- 📋 **Transaction History**: Complete payment history with filtering and export
+- 📊 **API Status Monitoring**: Real-time API health and performance monitoring
+- ⚙️ **System Administration**: API configuration, database management, logs
+- 🔧 **Application Settings**: Theme, performance, security, backup configuration
+- 📄 **Excel Integration**: Bulk processing, template generation, data validation
+- 🔒 **Security**: Encrypted credential storage, password protection
