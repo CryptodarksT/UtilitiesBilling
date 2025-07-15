@@ -15,8 +15,12 @@ import { userAccounts, linkedCards } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
+import { registerTestEndpoints } from "./test-endpoints";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Register test endpoints for development
+  registerTestEndpoints(app);
   
   // Configure multer for file uploads
   const upload = multer({
