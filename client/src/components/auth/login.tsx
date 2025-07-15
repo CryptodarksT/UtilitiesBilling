@@ -45,9 +45,22 @@ export default function Login({ onRegister }: LoginProps) {
       }
     } catch (error: any) {
       console.error('Google sign in error:', error);
+      
+      let errorMessage = "Không thể đăng nhập với Google";
+      
+      if (error.code === 'auth/requests-to-this-api-identitytoolkit-method-google.cloud.identitytoolkit.v1.projectconfigservice.getprojectconfig-are-blocked.') {
+        errorMessage = "Domain chưa được phép. Vui lòng liên hệ admin để thêm domain này vào Firebase Console: " + window.location.hostname;
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "Domain này chưa được cấp phép sử dụng Firebase. Vui lòng kiểm tra file FIREBASE_AUTH_FIX.md để biết cách khắc phục.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Trình duyệt đã chặn popup đăng nhập. Vui lòng cho phép popup và thử lại.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Lỗi đăng nhập",
-        description: error.message || "Không thể đăng nhập với Google",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
