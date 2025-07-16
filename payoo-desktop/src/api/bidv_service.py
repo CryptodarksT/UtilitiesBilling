@@ -8,9 +8,6 @@ from typing import Dict, Any, Optional
 import ssl
 import urllib3
 
-# Vô hiệu hóa warning SSL
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 class BIDVService:
     """Service tích hợp BIDV API thật"""
     
@@ -63,7 +60,7 @@ class BIDVService:
                 f"{self.api_url}/bills/lookup",
                 headers=headers,
                 data=data_string,
-                verify=False,
+                verify=True,
                 timeout=30
             )
             
