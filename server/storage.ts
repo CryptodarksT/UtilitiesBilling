@@ -27,6 +27,11 @@ export interface IStorage {
   updatePaymentStatus(id: number, status: string): Promise<void>;
   getPaymentsByCustomerId(customerId: string): Promise<Payment[]>;
   getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined>;
+  
+  // Bulk operations for stats
+  getAllCustomers(): Promise<Customer[]>;
+  getAllBills(): Promise<Bill[]>;
+  getAllPayments(): Promise<Payment[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -137,6 +142,18 @@ export class MemStorage implements IStorage {
       }
     }
     return undefined;
+  }
+
+  async getAllCustomers(): Promise<Customer[]> {
+    return Array.from(this.customers.values());
+  }
+
+  async getAllBills(): Promise<Bill[]> {
+    return Array.from(this.bills.values());
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return Array.from(this.payments.values());
   }
 }
 

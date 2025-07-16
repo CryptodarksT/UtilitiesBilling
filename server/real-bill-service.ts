@@ -442,15 +442,8 @@ export class RealBillService {
       };
     }
     
-    // Fallback to generated data if not found
-    const billType = this.getBillTypeFromNumber(billNumber);
-    const provider = this.getProviderFromNumber(billNumber);
-    
-    return this.generateFallbackBill({
-      customerId: billNumber,
-      billType: billType,
-      provider: provider
-    });
+    // No fallback data - return error for unknown bills
+    throw new Error(`Hóa đơn ${billNumber} không tồn tại trong hệ thống BIDV. Vui lòng kiểm tra lại mã hóa đơn.`);
   }
 
   /**

@@ -6,25 +6,83 @@ import {
   AlertTriangle 
 } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
 export default function StatsCards() {
-  const stats = [
+  // Fetch real stats from API
+  const { data: realStats, isLoading } = useQuery({
+    queryKey: ["/api/stats/dashboard"],
+    queryFn: () => apiRequest("GET", "/api/stats/dashboard"),
+    retry: false,
+  });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="card-shadow">
+            <CardContent className="p-6">
+              <div className="animate-pulse">
+                <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // Use real data or show error
+  const stats = realStats ? [
     {
       title: "Hóa đơn chưa thanh toán",
-      value: "3",
+      value: realStats.unpaid || "0",
       icon: FileText,
       color: "text-blue-500",
       bgColor: "bg-blue-100 dark:bg-blue-900/20",
     },
     {
       title: "Đã thanh toán",
-      value: "12",
+      value: realStats.paid || "0",
       icon: CheckCircle,
       color: "text-success",
       bgColor: "bg-green-100 dark:bg-green-900/20",
     },
     {
       title: "Sắp hết hạn",
-      value: "1",
+      value: realStats.dueSoon || "0",
+      icon: Clock,
+      color: "text-warning",
+      bgColor: "bg-yellow-100 dark:bg-yellow-900/20",
+    },
+    {
+      title: "Quá hạn",
+      value: realStats.overdue || "0",
+      icon: AlertTriangle,
+      color: "text-destructive",
+      bgColor: "bg-red-100 dark:bg-red-900/20",
+    },
+  ] : [
+    {
+      title: "Hóa đơn chưa thanh toán",
+      value: "0",
+      icon: FileText,
+      color: "text-blue-500",
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
+    },
+    {
+      title: "Đã thanh toán",
+      value: "0",
+      icon: CheckCircle,
+      color: "text-success",
+      bgColor: "bg-green-100 dark:bg-green-900/20",
+    },
+    {
+      title: "Sắp hết hạn",
+      value: "0",
       icon: Clock,
       color: "text-warning",
       bgColor: "bg-yellow-100 dark:bg-yellow-900/20",
