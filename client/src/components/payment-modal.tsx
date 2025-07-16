@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { QrCode, Building2, Smartphone, Loader2, CheckCircle } from "lucide-react";
@@ -243,6 +243,14 @@ export default function PaymentModal({
               }
             </span>
           </DialogTitle>
+          <DialogDescription>
+            {isProcessing 
+              ? "Vui lòng đợi trong khi hệ thống xử lý thanh toán của bạn." 
+              : paymentStatus?.payment?.status === "completed"
+              ? "Giao dịch đã được hoàn tất thành công."
+              : "Xác nhận thông tin và phương thức thanh toán hóa đơn."
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

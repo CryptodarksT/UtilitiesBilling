@@ -41,10 +41,10 @@ export default function BatchQuery() {
       return response;
     },
     onSuccess: (data) => {
-      setResults(data.results);
+      setResults(data.results || []);
       toast({
         title: "Truy vấn thành công",
-        description: `Đã xử lý ${data.total} truy vấn. Thành công: ${data.success}, Thất bại: ${data.failed}`,
+        description: `Đã xử lý ${data.total || 0} truy vấn. Thành công: ${data.success || 0}, Thất bại: ${data.failed || 0}`,
       });
     },
     onError: (error) => {
@@ -149,6 +149,8 @@ export default function BatchQuery() {
       'Địa chỉ': result.data?.customerAddress || '',
       'Số tiền': result.data?.amount || ''
     }));
+    
+    if (csvData.length === 0) return;
     
     const csvContent = [
       Object.keys(csvData[0]).join(','),
