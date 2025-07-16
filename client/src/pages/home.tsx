@@ -13,6 +13,8 @@ import TxtUpload from "@/components/txt-upload";
 import AutoPayment from "@/components/auto-payment";
 import PhonecardPurchase from "@/components/phonecard-purchase";
 import VisaCardManager from "@/components/visa-card-manager";
+import BatchQuery from "@/components/batch-query";
+import CustomerCards from "@/components/customer-cards";
 import { useToast } from "@/hooks/use-toast";
 import type { Bill, Customer } from "@shared/schema";
 
@@ -107,12 +109,14 @@ export default function Home() {
         {/* Main Content Tabs */}
         <div className="mb-8">
           <Tabs defaultValue="search" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="search">Tra cứu hóa đơn</TabsTrigger>
               <TabsTrigger value="txt">Upload TXT</TabsTrigger>
               <TabsTrigger value="auto">Thanh toán tự động</TabsTrigger>
               <TabsTrigger value="phonecard">Mua thẻ cào</TabsTrigger>
               <TabsTrigger value="visa">Quản lý thẻ Visa</TabsTrigger>
+              <TabsTrigger value="batch">Truy vấn hàng loạt</TabsTrigger>
+              <TabsTrigger value="cards">Quản lý thẻ</TabsTrigger>
             </TabsList>
             
             <TabsContent value="search" className="mt-6">
@@ -133,6 +137,14 @@ export default function Home() {
             
             <TabsContent value="visa" className="mt-6">
               <VisaCardManager />
+            </TabsContent>
+            
+            <TabsContent value="batch" className="mt-6">
+              <BatchQuery />
+            </TabsContent>
+            
+            <TabsContent value="cards" className="mt-6">
+              <CustomerCards customerId={billData?.customer?.customerId || ""} />
             </TabsContent>
           </Tabs>
         </div>

@@ -2,12 +2,15 @@ import {
   customers, 
   bills, 
   payments, 
+  customerCards,
   type Customer, 
   type Bill, 
   type Payment,
+  type CustomerCard,
   type InsertCustomer, 
   type InsertBill, 
-  type InsertPayment 
+  type InsertPayment,
+  type InsertCustomerCard
 } from "@shared/schema";
 
 export interface IStorage {
@@ -32,20 +35,30 @@ export interface IStorage {
   getAllCustomers(): Promise<Customer[]>;
   getAllBills(): Promise<Bill[]>;
   getAllPayments(): Promise<Payment[]>;
+  
+  // Customer card operations
+  getCustomerCards(customerId: string): Promise<CustomerCard[]>;
+  createCustomerCard(card: InsertCustomerCard): Promise<CustomerCard>;
+  updateCustomerCard(id: number, updates: Partial<CustomerCard>): Promise<CustomerCard>;
+  deleteCustomerCard(id: number): Promise<void>;
+  setDefaultCard(customerId: string, cardId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
   private customers: Map<string, Customer>;
   private bills: Map<string, Bill>; // Changed to string for real API IDs
   private payments: Map<number, Payment>;
+  private customerCards: Map<number, CustomerCard>;
   private currentCustomerId: number = 1;
   private currentBillId: number = 1;
   private currentPaymentId: number = 1;
+  private currentCardId: number = 1;
 
   constructor() {
     this.customers = new Map();
     this.bills = new Map();
     this.payments = new Map();
+    this.customerCards = new Map();
     // NO SEED DATA - Only real data from APIs
   }
 
@@ -154,6 +167,50 @@ export class MemStorage implements IStorage {
 
   async getAllPayments(): Promise<Payment[]> {
     return Array.from(this.payments.values());
+  }
+
+  async getCustomerCards(customerId: string): Promise<CustomerCard[]> {
+    return Array.from(this.customerCards.values()).filter(card => card.customerId === customerId);
+  }
+
+  async createCustomerCard(insertCard: InsertCustomerCard): Promise<CustomerCard> {
+    const card: CustomerCard = {
+      id: this.currentCardId++,
+      ...insertCard,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.customerCards.set(card.id, card);
+    return card;
+  }
+
+  async updateCustomerCard(id: number, updates: Partial<CustomerCard>): Promise<CustomerCard> {
+    const card = this.customerCards.get(id);
+    if (!card) {
+      throw new Error("Thẻ không tồn tại");
+    }
+    const updatedCard = { ...card, ...updates, updatedAt: new Date() };
+    this.customerCards.set(id, updatedCard);
+    return updatedCard;
+  }
+
+  async deleteCustomerCard(id: number): Promise<void> {
+    this.customerCards.delete(id);
+  }
+
+  async setDefaultCard(customerId: string, cardId: number): Promise<void> {
+    // Remove default from all cards of this customer
+    for (const [id, card] of this.customerCards.entries()) {
+      if (card.customerId === customerId) {
+        this.customerCards.set(id, { ...card, isDefault: false, updatedAt: new Date() });
+      }
+    }
+    // Set the specified card as default
+    const card = this.customerCards.get(cardId);
+    if (card && card.customerId === customerId) {
+      this.customerCards.set(cardId, { ...card, isDefault: true, updatedAt: new Date() });
+    }
   }
 }
 

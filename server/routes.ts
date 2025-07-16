@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema } from "@shared/schema";
+import { billLookupSchema, billNumberLookupSchema, paymentRequestSchema, batchQuerySchema, customerCardSchema } from "@shared/schema";
 import { z } from "zod";
 import { MoMoService } from "./momo-service";
 import { BIDVService } from "./bidv-service";
@@ -816,6 +816,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Dashboard stats error:', error);
       res.status(500).json({ message: "Không thể lấy thống kê thời gian thực" });
+    }
+  });
+
+  // Batch query endpoint
+  app.post("/api/bills/batch", async (req, res) => {
+    try {
+      const { queries } = batchQuerySchema.parse(req.body);
+      
+      const results = [];
+      const bidvService = new BIDVService();
+      
+      for (const query of queries) {
+        try {
+          let result = null;
+          
+          if (query.type === "bill_number") {
+            // Use BIDV API for bill number lookup
+            const billData = await bidvService.lookupBill({ billNumber: query.value });
+            result = {
+              success: true,
+              data: billData,
+              query: query
+            };
+          } else if (query.type === "customer_id") {
+            // Use real bill service for customer lookup
+            const billData = await realBillService.findBillsByCustomerId({
+              customerId: query.value,
+              billType: query.billType || 'electricity',
+              provider: query.provider || 'EVN'
+            });
+            result = {
+              success: true,
+              data: billData,
+              query: query
+            };
+          }
+          
+          results.push(result);
+        } catch (error) {
+          results.push({
+            success: false,
+            error: error.message,
+            query: query
+          });
+        }
+      }
+      
+      res.json({
+        total: queries.length,
+        success: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+        results: results
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dữ liệu không hợp lệ",
+          errors: error.errors 
+        });
+      }
+      console.error('Batch query error:', error);
+      res.status(500).json({ message: "Lỗi xử lý truy vấn hàng loạt" });
+    }
+  });
+
+  // Customer cards endpoints
+  app.get("/api/customers/:customerId/cards", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const cards = await storage.getCustomerCards(customerId);
+      
+      // Mask card numbers for security
+      const maskedCards = cards.map(card => ({
+        ...card,
+        cardNumber: `**** **** **** ${card.cardNumber.slice(-4)}`
+      }));
+      
+      res.json({ cards: maskedCards });
+    } catch (error) {
+      console.error('Get customer cards error:', error);
+      res.status(500).json({ message: "Không thể lấy danh sách thẻ" });
+    }
+  });
+
+  app.post("/api/customers/:customerId/cards", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const cardData = customerCardSchema.parse({
+        ...req.body,
+        customerId
+      });
+      
+      // Encrypt card number (basic example - in production use proper encryption)
+      const encryptedCardNumber = Buffer.from(cardData.cardNumber).toString('base64');
+      
+      const card = await storage.createCustomerCard({
+        ...cardData,
+        cardNumber: encryptedCardNumber
+      });
+      
+      // Return masked card number
+      res.json({
+        ...card,
+        cardNumber: `**** **** **** ${cardData.cardNumber.slice(-4)}`
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dữ liệu thẻ không hợp lệ",
+          errors: error.errors 
+        });
+      }
+      console.error('Create customer card error:', error);
+      res.status(500).json({ message: "Không thể thêm thẻ" });
+    }
+  });
+
+  app.put("/api/customers/:customerId/cards/:cardId/default", async (req, res) => {
+    try {
+      const { customerId, cardId } = req.params;
+      await storage.setDefaultCard(customerId, parseInt(cardId));
+      res.json({ message: "Đã đặt làm thẻ mặc định" });
+    } catch (error) {
+      console.error('Set default card error:', error);
+      res.status(500).json({ message: "Không thể đặt thẻ mặc định" });
+    }
+  });
+
+  app.delete("/api/customers/:customerId/cards/:cardId", async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      await storage.deleteCustomerCard(parseInt(cardId));
+      res.json({ message: "Đã xóa thẻ" });
+    } catch (error) {
+      console.error('Delete customer card error:', error);
+      res.status(500).json({ message: "Không thể xóa thẻ" });
     }
   });
 
