@@ -116,14 +116,28 @@ The application uses three main tables:
 - Database migrations handled by Drizzle Kit
 
 ### Production Build
-- Frontend builds to static files in `dist/public`
+- Frontend builds to static files in `server/public` directory
 - Backend compiles to `dist/index.js` using esbuild
 - Database schema deployment via `npm run db:push`
+- Production server serves static files from `server/public`
 
 ### Environment Configuration
 - Database connection via `DATABASE_URL` environment variable
 - Development and production build scripts configured
 - TypeScript configuration covers all source directories
+
+### Deployment Configuration - July 16, 2025
+- **Deployment Target**: Cloud Run (configured in `replit.toml`)
+- **Build Command**: `npm run build` (builds both frontend and backend)
+- **Start Command**: `npm start` (runs production server on port 5000)
+- **Port Configuration**: Application serves on port 5000 with external port 80
+- **Production Structure**:
+  - `dist/index.js` - Compiled backend server
+  - `server/public/index.html` - Frontend deployment page
+  - Static file serving configured for production deployment
+- **Build Scripts**:
+  - `build-production.sh` - Custom build script for deployment
+  - `deploy-build.sh` - Deployment-specific build configuration
 
 The application demonstrates modern full-stack development practices with type safety, proper separation of concerns, and a clean architecture that supports both development and production deployment.
 
