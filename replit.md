@@ -192,6 +192,27 @@ The application demonstrates modern full-stack development practices with type s
   - Electron Desktop App → Cross-platform desktop
   - Hybrid builds combining multiple approaches
 
+### Dark/Light Mode Toggle with Smooth Transitions - July 16, 2025
+- **Theme Provider**: Created comprehensive theme context system with localStorage persistence
+- **Theme Toggle Component**: Interactive dropdown with Light/Dark/System options
+- **Components Created**:
+  - `client/src/components/theme-provider.tsx` - React context for theme management
+  - `client/src/components/theme-toggle.tsx` - Toggle component with Vietnamese labels
+  - Enhanced CSS with smooth transition utilities
+- **Features**:
+  - System theme detection (follows OS preference)
+  - Manual theme selection with visual feedback
+  - Smooth transitions across all UI components (0.2s-0.5s durations)
+  - localStorage persistence across sessions
+  - Mobile-responsive design with dropdown in mobile menu
+  - Accessibility compliance with proper ARIA labels
+- **Implementation Details**:
+  - Theme transitions for background, colors, borders, shadows
+  - Updated header, footer, and button components
+  - CSS custom properties for consistent theming
+  - Vietnamese UI labels: "Sáng" (Light), "Tối" (Dark), "Hệ thống" (System)
+  - Backdrop blur effects and enhanced visual polish
+
 ## Desktop Application
 
 ### Python Desktop Version
