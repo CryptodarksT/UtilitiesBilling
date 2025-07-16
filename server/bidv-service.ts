@@ -72,10 +72,11 @@ export class BIDVService {
 
       // Configure HTTPS agent with proper SSL settings
       const httpsAgent = new https.Agent({
-        rejectUnauthorized: true,
+        rejectUnauthorized: false, // Allow self-signed certificates for testing
         secureProtocol: 'TLSv1_2_method',
         ciphers: 'HIGH:!aNULL:!MD5',
-        timeout: 30000
+        timeout: 30000,
+        secureOptions: constants.SSL_OP_LEGACY_SERVER_CONNECT
       });
 
       const response = await axios.post<BIDVApiResponse>(

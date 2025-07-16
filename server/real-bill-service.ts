@@ -133,6 +133,52 @@ export class RealBillService {
   }
 
   /**
+   * Find bills by customer ID - for batch query support
+   */
+  public async findBillsByCustomerId(request: BillQueryRequest): Promise<BillInfo[]> {
+    const providerKey = `${request.billType}_${request.provider}`;
+    const config = this.configs.get(providerKey);
+    
+    if (!config) {
+      throw new Error(`Không hỗ trợ nhà cung cấp ${request.provider} cho loại hóa đơn ${request.billType}`);
+    }
+
+    if (!config.apiKey) {
+      throw new Error(`API key chưa được cấu hình cho ${request.provider}. Vui lòng liên hệ quản trị viên.`);
+    }
+
+    try {
+      const response = await axios.get<BillInfo[]>(config.url, {
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json',
+          ...config.headers
+        },
+        params: {
+          customerId: request.customerId,
+          billType: request.billType,
+          provider: request.provider
+        },
+        timeout: config.timeout
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error(`${request.provider} API Error:`, error.message);
+      
+      if (error.response?.status === 404) {
+        throw new Error(`Không tìm thấy hóa đơn cho khách hàng ${request.customerId} tại ${request.provider}`);
+      } else if (error.response?.status === 401) {
+        throw new Error(`Xác thực API ${request.provider} thất bại. Vui lòng kiểm tra API credentials.`);
+      } else if (error.code === 'ECONNRESET' || error.code === 'ENOTFOUND') {
+        throw new Error(`Không thể kết nối với ${request.provider}. Vui lòng thử lại sau.`);
+      } else {
+        throw new Error(`Lỗi kết nối ${request.provider} API: ${error.message}`);
+      }
+    }
+  }
+
+  /**
    * Query bill from real provider API
    */
   public async queryBill(request: BillQueryRequest): Promise<BillInfo | null> {

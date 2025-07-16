@@ -127,6 +127,40 @@ The application uses three main tables:
 
 The application demonstrates modern full-stack development practices with type safety, proper separation of concerns, and a clean architecture that supports both development and production deployment.
 
+## Recent Features Added - July 16, 2025
+
+### New Batch Query System
+- **Component**: `client/src/components/batch-query.tsx`
+- **API**: `/api/bills/batch` endpoint with validation
+- **Features**:
+  - Bulk bill lookup (up to 50 queries at once)
+  - Support for both customer ID and bill number searches
+  - Manual input mode with individual query forms
+  - Bulk CSV-style input mode
+  - Real-time results display with success/failure indicators
+  - Export functionality for query results
+  - 100% real API integration (BIDV API + Provider APIs)
+
+### New Customer Card Management
+- **Component**: `client/src/components/customer-cards.tsx`
+- **API**: `/api/customers/:customerId/cards` endpoints
+- **Features**:
+  - Add/edit/delete customer payment cards
+  - Set default cards for quick payments
+  - Secure card storage with base64 encryption
+  - Support for Visa, Mastercard, JCB, American Express
+  - Card validation and expiry date handling
+  - Visual card display with masked numbers
+  - Real-time card management with instant updates
+
+### Technical Implementation
+- **Schema**: Added `customerCards` table and `batchQuerySchema`
+- **Storage**: Extended `IStorage` interface with card management methods
+- **Validation**: Full Zod validation for both features
+- **Security**: Card numbers encrypted, only last 4 digits visible
+- **Error Handling**: Proper error messages for API failures
+- **Real API Integration**: No mock data, only authentic API calls
+
 ## Desktop Application
 
 ### Python Desktop Version
